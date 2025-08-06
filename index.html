@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seguimiento de Clientes - Dayton (Versión IndexedDB Mejorada)</title>
-    <link rel="manifest" href="manifest.json">
     <style>
         * {
             margin: 0;
@@ -173,7 +172,7 @@
         }
 
         .btn-export {
-            background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%); /* Green gradient */
+            background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
             color: white;
             margin-left: 10px;
             display: inline-flex;
@@ -182,13 +181,34 @@
         }
 
         .btn-export.csv {
-            background: linear-gradient(135deg, #FFC107 0%, #FFEB3B 100%); /* Amber gradient */
+            background: linear-gradient(135deg, #FFC107 0%, #FFEB3B 100%);
             color: #333;
         }
 
         .btn-export.pdf {
-            background: linear-gradient(135deg, #F44336 0%, #E91E63 100%); /* Red/Pink gradient */
+            background: linear-gradient(135deg, #F44336 0%, #E91E63 100%);
             color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #212529;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+            margin: 0 2px;
         }
         
         .dashboard-grid {
@@ -253,6 +273,21 @@
             background: #f8f9fa;
             border-radius: 8px;
             border-left: 4px solid #667eea;
+            position: relative;
+        }
+
+        .timeline-item.deleted {
+            border-left: 4px solid #dc3545;
+            background: #fff5f5;
+            opacity: 0.7;
+        }
+
+        .timeline-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
         }
         
         .timeline-date {
@@ -265,6 +300,7 @@
         .timeline-content {
             flex: 1;
             margin-left: 15px;
+            margin-right: 120px;
         }
         
         .timeline-tipo {
@@ -293,6 +329,63 @@
         .timeline-descripcion {
             color: #555;
             line-height: 1.4;
+        }
+
+        .trash-controls {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ffeaa7;
+        }
+
+        .trash-controls h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .trash-item {
+            display: flex;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #fff5f5;
+            border-radius: 6px;
+            border-left: 3px solid #dc3545;
+            position: relative;
+        }
+
+        .trash-date {
+            min-width: 100px;
+            color: #dc3545;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .trash-content {
+            flex: 1;
+            margin-left: 10px;
+            margin-right: 100px;
+        }
+
+        .trash-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 3px;
+        }
+
+        .trash-cliente {
+            font-weight: 600;
+            color: #721c24;
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+
+        .trash-descripcion {
+            color: #666;
+            font-size: 12px;
+            line-height: 1.3;
         }
         
         .no-data {
@@ -426,6 +519,70 @@
             flex-wrap: wrap;
         }
 
+        .bulk-actions {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .bulk-actions h4 {
+            color: #721c24;
+            margin-bottom: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e1e8ed;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            text-align: right;
+        }
+
+        .modal-footer button {
+            margin-left: 10px;
+        }
+
     </style>
     <!-- SheetJS (XLSX) -->
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
@@ -447,6 +604,7 @@
             <button class="nav-tab" onclick="cambiarTab(event, 'registro')">➕ Nuevo Registro</button>
             <button class="nav-tab" onclick="cambiarTab(event, 'timeline')">📅 Timeline</button>
             <button class="nav-tab" onclick="cambiarTab(event, 'clientes')">👥 Clientes</button>
+            <button class="nav-tab" onclick="cambiarTab(event, 'papelera')">🗑️ Papelera</button>
         </div>
 
         <!-- TAB: DASHBOARD -->
@@ -473,6 +631,11 @@
                     <div class="stat-number" id="gerenciaMasActiva">-</div>
                     <div class="stat-label">Gerencia con más actividad</div>
                 </div>
+                <div class="dashboard-card">
+                    <h3>🗑️ En Papelera</h3>
+                    <div class="stat-number" id="itemsEnPapelera">0</div>
+                    <div class="stat-label">Registros eliminados</div>
+                </div>
             </div>
             <div class="filtros-section">
                 <h4>📊 Resumen por Gerencia</h4>
@@ -490,6 +653,15 @@
                         <input type="date" id="dashboardFechaHasta" onchange="actualizarDashboard()">
                     </div>
                 </div>
+            </div>
+            <div class="bulk-actions">
+                <h4>⚠️ Acciones de Administración</h4>
+                <button class="btn-danger btn-small" onclick="confirmarLimpiezaTotal()">
+                    🧹 Limpiar Toda la Base de Datos
+                </button>
+                <button class="btn-warning btn-small" onclick="confirmarVaciarPapelera()">
+                    🗑️ Vaciar Papelera Permanentemente
+                </button>
             </div>
             <div id="dashboardExportButtons" class="export-buttons-container">
                 <!-- Buttons will be injected here by JS -->
@@ -616,8 +788,8 @@
                         <select id="filtroConsultor" onchange="filtrarTimeline()">
                             <option value="">Todos los consultores</option>
                             <option value="Fernanda Villarreal Martínez">Fernanda Villarreal Martínez</option>
-                            <option value="Ana Aguilar Lee">Ana Aguilar Lee</soption>
-                                <option value="Guillermo de la Parra Tron">Guillermo de la Parra Tron</option>
+                            <option value="Ana Aguilar Lee">Ana Aguilar Lee</option>
+                            <option value="Guillermo de la Parra Tron">Guillermo de la Parra Tron</option>
                         </select>
                     </div>
                 </div>
@@ -631,6 +803,14 @@
                         <input type="date" id="fechaHasta" onchange="filtrarTimeline()">
                     </div>
                 </div>
+            </div>
+            <div class="bulk-actions">
+                <h4>🗑️ Eliminación Masiva</h4>
+                <p style="margin-bottom: 10px;">Eliminar todos los registros que coincidan con los filtros actuales:</p>
+                <button class="btn-danger btn-small" onclick="confirmarEliminacionMasiva()">
+                    🗑️ Eliminar Registros Filtrados
+                </button>
+                <small style="display: block; margin-top: 5px; color: #666;">⚠️ Esta acción moverá los registros a la papelera</small>
             </div>
             <div class="timeline-container" id="timelineContainer">
                 <div class="no-data">
@@ -656,6 +836,44 @@
                 </div>
             </div>
         </div>
+
+        <!-- TAB: PAPELERA -->
+        <div id="papelera" class="tab-content">
+            <div class="trash-controls">
+                <h4>🗑️ Papelera de Reciclaje</h4>
+                <p>Los registros eliminados se mantienen aquí por seguridad. Puedes restaurarlos o eliminarlos permanentemente.</p>
+                <div style="margin-top: 10px;">
+                    <button class="btn-success btn-small" onclick="restaurarTodos()">
+                        ↩️ Restaurar Todos
+                    </button>
+                    <button class="btn-danger btn-small" onclick="confirmarVaciarPapelera()">
+                        🗑️ Vaciar Papelera
+                    </button>
+                </div>
+            </div>
+            <div class="timeline-container" id="papeleraContainer">
+                <div class="no-data">
+                    🗑️ La papelera está vacía.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Confirmar Acción</h3>
+                <button class="modal-close" onclick="cerrarModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage">¿Estás seguro de que deseas realizar esta acción?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
+                <button class="btn-danger" id="confirmButton" onclick="ejecutarAccionConfirmada()">Confirmar</button>
+            </div>
+        </div>
     </div>
 
     <footer class="footer-leyenda">
@@ -667,11 +885,13 @@
         // CONFIGURACIÓN DE INDEXEDDB CON MANEJO ROBUSTO DE ERRORES
         // =================================================================
         const DB_NAME = 'SeguimientoDaytonDB';
-        const DB_VERSION = 1;
+        const DB_VERSION = 2; // Incrementamos versión para nueva estructura
         const STORE_NAME = 'registros';
+        const TRASH_STORE_NAME = 'papelera';
         let db;
         let dbStatus = 'offline';
         let memoryFallback = []; // Fallback para cuando IndexedDB falle
+        let trashFallback = []; // Fallback para papelera
 
         // Configuración de zona por gerencia con validación
         const zonasPorGerencia = {
@@ -686,6 +906,8 @@
         };
 
         let registrosOriginales = [];
+        let registrosEliminados = [];
+        let accionPendiente = null; // Para manejar confirmaciones
 
         // =================================================================
         // FUNCIONES AUXILIARES PARA VALIDACIÓN Y SANITIZACIÓN
@@ -802,14 +1024,25 @@
                     const db = event.target.result;
                     
                     try {
+                        // Store principal de registros
                         if (!db.objectStoreNames.contains(STORE_NAME)) {
                             const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
                             objectStore.createIndex('fecha', 'fecha', { unique: false });
                             objectStore.createIndex('gerencia', 'gerencia', { unique: false });
                             objectStore.createIndex('consultor', 'consultor', { unique: false });
                             objectStore.createIndex('cliente', 'cliente', { unique: false });
-                            console.log('✅ Object store y índices creados exitosamente');
+                            console.log('✅ Object store de registros creado');
                         }
+
+                        // Store de papelera
+                        if (!db.objectStoreNames.contains(TRASH_STORE_NAME)) {
+                            const trashStore = db.createObjectStore(TRASH_STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                            trashStore.createIndex('fechaEliminacion', 'fechaEliminacion', { unique: false });
+                            trashStore.createIndex('originalId', 'originalId', { unique: false });
+                            console.log('✅ Object store de papelera creado');
+                        }
+
+                        console.log('✅ Estructura de BD actualizada exitosamente');
                     } catch (upgradeError) {
                         console.error('❌ Error durante actualización de BD:', upgradeError);
                         throw upgradeError;
@@ -839,6 +1072,9 @@
             });
         }
 
+        // =================================================================
+        // FUNCIONES DE BASE DE DATOS MEJORADAS
+        // =================================================================
         async function addRegistroToDB(registro) {
             return new Promise(async (resolve, reject) => {
                 console.log('💾 Guardando registro en BD...', registro);
@@ -945,6 +1181,427 @@
                 }
             });
         }
+
+        async function deleteRegistroFromDB(id) {
+            return new Promise(async (resolve, reject) => {
+                console.log('🗑️ Eliminando registro ID:', id);
+                
+                // Primero buscamos el registro
+                const registro = registrosOriginales.find(r => r.id === id);
+                if (!registro) {
+                    console.error('❌ Registro no encontrado:', id);
+                    reject('Registro no encontrado');
+                    return;
+                }
+
+                // Mover a papelera
+                const registroEliminado = {
+                    ...registro,
+                    originalId: id,
+                    fechaEliminacion: new Date().toISOString()
+                };
+
+                try {
+                    // Agregar a papelera
+                    await addToTrash(registroEliminado);
+                    
+                    if (dbStatus === 'offline' || !db) {
+                        // Eliminar de memoria fallback
+                        const index = memoryFallback.findIndex(r => r.id === id);
+                        if (index > -1) {
+                            memoryFallback.splice(index, 1);
+                            console.log('✅ Registro eliminado de memoria fallback');
+                        }
+                        resolve(true);
+                        return;
+                    }
+
+                    // Eliminar de IndexedDB
+                    const transaction = db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.delete(id);
+
+                    request.onsuccess = () => {
+                        console.log('✅ Registro eliminado de BD y movido a papelera');
+                        resolve(true);
+                    };
+
+                    request.onerror = (event) => {
+                        console.error('❌ Error eliminando de BD:', event.target.error);
+                        reject(event.target.error);
+                    };
+
+                } catch (error) {
+                    console.error('❌ Error moviendo a papelera:', error);
+                    reject(error);
+                }
+            });
+        }
+
+        async function addToTrash(registroEliminado) {
+            return new Promise(async (resolve, reject) => {
+                console.log('🗑️ Moviendo a papelera:', registroEliminado);
+                
+                if (dbStatus === 'offline' || !db) {
+                    registroEliminado.id = Date.now();
+                    trashFallback.push(registroEliminado);
+                    resolve(registroEliminado.id);
+                    return;
+                }
+
+                try {
+                    const transaction = db.transaction([TRASH_STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(TRASH_STORE_NAME);
+                    const request = store.add(registroEliminado);
+
+                    request.onsuccess = () => {
+                        console.log('✅ Registro agregado a papelera con ID:', request.result);
+                        resolve(request.result);
+                    };
+
+                    request.onerror = (event) => {
+                        console.error('❌ Error agregando a papelera:', event.target.error);
+                        registroEliminado.id = Date.now();
+                        trashFallback.push(registroEliminado);
+                        resolve(registroEliminado.id);
+                    };
+
+                } catch (error) {
+                    console.error('❌ Error sincrónico agregando a papelera:', error);
+                    registroEliminado.id = Date.now();
+                    trashFallback.push(registroEliminado);
+                    resolve(registroEliminado.id);
+                }
+            });
+        }
+
+        async function getAllTrashFromDB() {
+            return new Promise(async (resolve, reject) => {
+                console.log('📖 Cargando registros de papelera...');
+                
+                if (dbStatus === 'offline' || !db) {
+                    resolve([...trashFallback]);
+                    return;
+                }
+
+                try {
+                    const transaction = db.transaction([TRASH_STORE_NAME], 'readonly');
+                    const store = transaction.objectStore(TRASH_STORE_NAME);
+                    const request = store.getAll();
+
+                    request.onsuccess = () => {
+                        const dbRecords = request.result || [];
+                        const allRecords = [...dbRecords, ...trashFallback];
+                        console.log(`✅ Cargados ${dbRecords.length} registros de papelera BD + ${trashFallback.length} de memoria`);
+                        resolve(allRecords);
+                    };
+
+                    request.onerror = (event) => {
+                        console.error('❌ Error cargando papelera:', event.target.error);
+                        resolve([...trashFallback]);
+                    };
+
+                } catch (error) {
+                    console.error('❌ Error sincrónico cargando papelera:', error);
+                    resolve([...trashFallback]);
+                }
+            });
+        }
+
+        async function restoreFromTrash(trashId, originalId) {
+            return new Promise(async (resolve, reject) => {
+                console.log('↩️ Restaurando registro de papelera:', trashId, 'Original ID:', originalId);
+                
+                // Buscar en papelera
+                const trashRecord = registrosEliminados.find(r => r.id === trashId);
+                if (!trashRecord) {
+                    reject('Registro no encontrado en papelera');
+                    return;
+                }
+
+                // Crear registro restaurado
+                const restoredRecord = { ...trashRecord };
+                delete restoredRecord.originalId;
+                delete restoredRecord.fechaEliminacion;
+                delete restoredRecord.id; // Para que se asigne nuevo ID
+
+                try {
+                    // Agregar de vuelta a registros
+                    const newId = await addRegistroToDB(restoredRecord);
+                    
+                    // Eliminar de papelera
+                    await deleteFromTrash(trashId);
+                    
+                    console.log('✅ Registro restaurado con nuevo ID:', newId);
+                    resolve(newId);
+
+                } catch (error) {
+                    console.error('❌ Error restaurando registro:', error);
+                    reject(error);
+                }
+            });
+        }
+
+        async function deleteFromTrash(trashId) {
+            return new Promise(async (resolve, reject) => {
+                console.log('🗑️ Eliminando permanentemente de papelera:', trashId);
+                
+                if (dbStatus === 'offline' || !db) {
+                    const index = trashFallback.findIndex(r => r.id === trashId);
+                    if (index > -1) {
+                        trashFallback.splice(index, 1);
+                    }
+                    resolve(true);
+                    return;
+                }
+
+                try {
+                    const transaction = db.transaction([TRASH_STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(TRASH_STORE_NAME);
+                    const request = store.delete(trashId);
+
+                    request.onsuccess = () => {
+                        console.log('✅ Registro eliminado permanentemente de papelera');
+                        resolve(true);
+                    };
+
+                    request.onerror = (event) => {
+                        console.error('❌ Error eliminando de papelera:', event.target.error);
+                        reject(event.target.error);
+                    };
+
+                } catch (error) {
+                    console.error('❌ Error sincrónico eliminando de papelera:', error);
+                    reject(error);
+                }
+            });
+        }
+        
+        // =================================================================
+        // FUNCIONES DE ELIMINACIÓN Y CONFIRMACIÓN
+        // =================================================================
+        function mostrarModal(titulo, mensaje, accion) {
+            const modal = document.getElementById('confirmModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            
+            modalTitle.textContent = titulo;
+            modalMessage.textContent = mensaje;
+            accionPendiente = accion;
+            
+            modal.style.display = 'block';
+        }
+
+        function cerrarModal() {
+            const modal = document.getElementById('confirmModal');
+            modal.style.display = 'none';
+            accionPendiente = null;
+        }
+
+        async function ejecutarAccionConfirmada() {
+            if (accionPendiente) {
+                await accionPendiente();
+                accionPendiente = null;
+            }
+            cerrarModal();
+        }
+
+        async function eliminarRegistro(id) {
+            try {
+                await deleteRegistroFromDB(id);
+                mostrarMensaje('✅ Registro movido a la papelera exitosamente', 'success');
+                await cargarDatosYActualizarUI();
+            } catch (error) {
+                console.error('❌ Error eliminando registro:', error);
+                mostrarMensaje('🔴 Error eliminando el registro', 'error');
+            }
+        }
+
+        function confirmarEliminacion(id, nombreCliente) {
+            mostrarModal(
+                '🗑️ Confirmar Eliminación',
+                `¿Estás seguro de que deseas eliminar el registro de "${nombreCliente}"? Se moverá a la papelera y podrás restaurarlo después.`,
+                () => eliminarRegistro(id)
+            );
+        }
+
+        async function eliminarRegistrosFiltrados() {
+            const registrosFiltrados = getFilteredDataForExport('timeline');
+            
+            if (registrosFiltrados.length === 0) {
+                mostrarMensaje('⚠️ No hay registros para eliminar con los filtros actuales', 'warning');
+                return;
+            }
+
+            try {
+                let eliminados = 0;
+                let errores = 0;
+
+                for (const registro of registrosFiltrados) {
+                    try {
+                        await deleteRegistroFromDB(registro.id);
+                        eliminados++;
+                    } catch (error) {
+                        console.error('❌ Error eliminando registro:', registro.id, error);
+                        errores++;
+                    }
+                }
+
+                mostrarMensaje(`✅ ${eliminados} registros movidos a la papelera. ${errores > 0 ? `${errores} errores.` : ''}`, eliminados > 0 ? 'success' : 'warning');
+                await cargarDatosYActualizarUI();
+
+            } catch (error) {
+                console.error('❌ Error en eliminación masiva:', error);
+                mostrarMensaje('🔴 Error en la eliminación masiva', 'error');
+            }
+        }
+
+        function confirmarEliminacionMasiva() {
+            const registrosFiltrados = getFilteredDataForExport('timeline');
+            mostrarModal(
+                '🗑️ Confirmar Eliminación Masiva',
+                `¿Estás seguro de que deseas eliminar ${registrosFiltrados.length} registros que coinciden con los filtros actuales? Se moverán a la papelera.`,
+                eliminarRegistrosFiltrados
+            );
+        }
+
+        async function restaurarRegistro(trashId, originalId, nombreCliente) {
+            try {
+                await restoreFromTrash(trashId, originalId);
+                mostrarMensaje(`✅ Registro de "${nombreCliente}" restaurado exitosamente`, 'success');
+                await cargarDatosYActualizarUI();
+            } catch (error) {
+                console.error('❌ Error restaurando registro:', error);
+                mostrarMensaje('🔴 Error restaurando el registro', 'error');
+            }
+        }
+
+        async function eliminarPermanentemente(trashId, nombreCliente) {
+            try {
+                await deleteFromTrash(trashId);
+                mostrarMensaje(`✅ Registro de "${nombreCliente}" eliminado permanentemente`, 'success');
+                await cargarDatosYActualizarUI();
+            } catch (error) {
+                console.error('❌ Error eliminando permanentemente:', error);
+                mostrarMensaje('🔴 Error eliminando permanentemente', 'error');
+            }
+        }
+
+        function confirmarEliminacionPermanente(trashId, nombreCliente) {
+            mostrarModal(
+                '⚠️ Confirmar Eliminación Permanente',
+                `¿Estás seguro de que deseas eliminar PERMANENTEMENTE el registro de "${nombreCliente}"? Esta acción NO se puede deshacer.`,
+                () => eliminarPermanentemente(trashId, nombreCliente)
+            );
+        }
+
+        async function restaurarTodos() {
+            if (registrosEliminados.length === 0) {
+                mostrarMensaje('⚠️ No hay registros en la papelera para restaurar', 'warning');
+                return;
+            }
+
+            try {
+                let restaurados = 0;
+                let errores = 0;
+
+                for (const registro of [...registrosEliminados]) {
+                    try {
+                        await restoreFromTrash(registro.id, registro.originalId);
+                        restaurados++;
+                    } catch (error) {
+                        console.error('❌ Error restaurando registro:', registro.id, error);
+                        errores++;
+                    }
+                }
+
+                mostrarMensaje(`✅ ${restaurados} registros restaurados. ${errores > 0 ? `${errores} errores.` : ''}`, restaurados > 0 ? 'success' : 'warning');
+                await cargarDatosYActualizarUI();
+
+            } catch (error) {
+                console.error('❌ Error en restauración masiva:', error);
+                mostrarMensaje('🔴 Error en la restauración masiva', 'error');
+            }
+        }
+
+        async function vaciarPapelera() {
+            if (registrosEliminados.length === 0) {
+                mostrarMensaje('⚠️ La papelera ya está vacía', 'warning');
+                return;
+            }
+
+            try {
+                let eliminados = 0;
+                let errores = 0;
+
+                for (const registro of [...registrosEliminados]) {
+                    try {
+                        await deleteFromTrash(registro.id);
+                        eliminados++;
+                    } catch (error) {
+                        console.error('❌ Error eliminando permanentemente:', registro.id, error);
+                        errores++;
+                    }
+                }
+
+                mostrarMensaje(`✅ ${eliminados} registros eliminados permanentemente. ${errores > 0 ? `${errores} errores.` : ''}`, eliminados > 0 ? 'success' : 'warning');
+                await cargarDatosYActualizarUI();
+
+            } catch (error) {
+                console.error('❌ Error vaciando papelera:', error);
+                mostrarMensaje('🔴 Error vaciando la papelera', 'error');
+            }
+        }
+
+        function confirmarVaciarPapelera() {
+            mostrarModal(
+                '⚠️ Confirmar Vaciar Papelera',
+                `¿Estás seguro de que deseas eliminar PERMANENTEMENTE todos los ${registrosEliminados.length} registros de la papelera? Esta acción NO se puede deshacer.`,
+                vaciarPapelera
+            );
+        }
+
+        async function limpiarBaseDatos() {
+            try {
+                // Limpiar memoria fallback
+                memoryFallback.length = 0;
+                trashFallback.length = 0;
+                
+                if (dbStatus === 'offline' || !db) {
+                    mostrarMensaje('✅ Datos de memoria limpiados (BD offline)', 'success');
+                    await cargarDatosYActualizarUI();
+                    return;
+                }
+
+                // Limpiar IndexedDB
+                const transaction = db.transaction([STORE_NAME, TRASH_STORE_NAME], 'readwrite');
+                const registrosStore = transaction.objectStore(STORE_NAME);
+                const papeleraStore = transaction.objectStore(TRASH_STORE_NAME);
+                
+                const clearRegistros = registrosStore.clear();
+                const clearPapelera = papeleraStore.clear();
+
+                await new Promise((resolve, reject) => {
+                    transaction.oncomplete = resolve;
+                    transaction.onerror = reject;
+                });
+
+                mostrarMensaje('✅ Base de datos limpiada completamente', 'success');
+                await cargarDatosYActualizarUI();
+
+            } catch (error) {
+                console.error('❌ Error limpiando base de datos:', error);
+                mostrarMensaje('🔴 Error limpiando la base de datos', 'error');
+            }
+        }
+
+        function confirmarLimpiezaTotal() {
+            mostrarModal(
+                '⚠️ PELIGRO: Confirmar Limpieza Total',
+                '¿Estás seguro de que deseas eliminar TODOS los datos de la aplicación? Esto incluye todos los registros y la papelera. Esta acción NO se puede deshacer.',
+                limpiarBaseDatos
+            );
+        }
         
         // =================================================================
         // LÓGICA PRINCIPAL DE LA APLICACIÓN
@@ -957,15 +1614,14 @@
                 await cargarDatosYActualizarUI();
                 document.getElementById('fecha').valueAsDate = new Date();
                 console.log('✅ Aplicación iniciada correctamente');
-                // Set initial tab to dashboard and inject buttons
                 cambiarTab(null, 'dashboard'); 
             } catch (error) {
                 console.error("❌ Error al inicializar la aplicación:", error);
                 updateDBStatus('offline');
                 mostrarMensaje('⚠️ Aplicación iniciada en modo offline. Los datos se guardarán temporalmente.', 'warning');
-                await cargarDatosYActualizarUI(); // Cargar datos de memoria
+                await cargarDatosYActualizarUI();
                 document.getElementById('fecha').valueAsDate = new Date();
-                cambiarTab(null, 'dashboard'); // Set initial tab to dashboard and inject buttons
+                cambiarTab(null, 'dashboard');
             }
         };
         
@@ -975,31 +1631,31 @@
             actualizarDashboard();
             cargarTimeline();
             cargarClientes();
+            cargarPapelera();
             console.log('✅ Interfaz actualizada');
         }
 
-        let activeTab = 'dashboard'; // Track the currently active tab
+        let activeTab = 'dashboard';
 
         function cambiarTab(event, tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
             
             document.getElementById(tabName).classList.add('active');
-            if (event) { // If called by a click event
+            if (event) {
                 event.currentTarget.classList.add('active');
-            } else { // If called programmatically (e.g., on load)
+            } else {
                 document.querySelector(`.nav-tab[onclick*="${tabName}"]`).classList.add('active');
             }
             activeTab = tabName;
             console.log(`📋 Tab cambiado a: ${tabName}`);
-            injectExportButtons(tabName); // Inject buttons based on the active tab
+            injectExportButtons(tabName);
         }
 
         function injectExportButtons(tabName) {
             const dashboardButtonsContainer = document.getElementById('dashboardExportButtons');
             const timelineButtonsContainer = document.getElementById('timelineExportButtons');
 
-            // Clear existing buttons
             if (dashboardButtonsContainer) dashboardButtonsContainer.innerHTML = '';
             if (timelineButtonsContainer) timelineButtonsContainer.innerHTML = '';
 
@@ -1030,14 +1686,12 @@
                 return;
             }
 
-            // Validación específica de campos
             const formData = new FormData(form);
             const registro = {};
             for (let [key, value] of formData.entries()) {
                 registro[key] = sanitizeString(value);
             }
 
-            // Validaciones específicas
             let hasErrors = false;
 
             if (!registro.fecha) {
@@ -1075,7 +1729,6 @@
                 hasErrors = true;
             }
 
-            // Validación crítica: gerencia-zona
             if (registro.gerenciaReg && registro.zonaReg) {
                 if (!validateGerenciaZona(registro.gerenciaReg, registro.zonaReg)) {
                     showValidationError('zonaReg', `La zona "${registro.zonaReg}" no pertenece a la gerencia "${registro.gerenciaReg}"`);
@@ -1088,7 +1741,6 @@
                 return;
             }
 
-            // Renombrar campos para consistencia
             registro.gerencia = registro.gerenciaReg;
             registro.zona = registro.zonaReg;
             delete registro.gerenciaReg;
@@ -1105,18 +1757,20 @@
             } catch (error) {
                 console.error("❌ Error al guardar:", error);
                 mostrarMensaje('🔴 Hubo un error al guardar el registro. Se guardó en memoria temporal.', 'warning');
-                await cargarDatosYActualizarUI(); // Actualizar aunque sea con datos de memoria
+                await cargarDatosYActualizarUI();
             }
         }
         
         async function cargarDatos() {
             try {
                 registrosOriginales = await getAllRegistrosFromDB();
-                console.log(`📊 Cargados ${registrosOriginales.length} registros totales`);
+                registrosEliminados = await getAllTrashFromDB();
+                console.log(`📊 Cargados ${registrosOriginales.length} registros + ${registrosEliminados.length} en papelera`);
                 actualizarAutocompletado();
             } catch (error) {
                 console.error("❌ Error al cargar datos:", error);
                 registrosOriginales = [];
+                registrosEliminados = [];
                 mostrarMensaje('🔴 No se pudieron cargar los registros.', 'warning');
             }
         }
@@ -1263,13 +1917,13 @@
                 
                 const gerenciaMasActiva = Object.entries(actividadPorGerencia).sort(([,a], [,b]) => b - a)[0];
 
-                // Actualizar elementos del DOM de forma segura
                 const elementos = {
                     'totalActividades': totalActividades,
                     'clientesActivos': clientesUnicos,
                     'actividadMes': actividadMes,
                     'labelMesActual': `Interacciones en ${getNombreMesActual()}`,
-                    'gerenciaMasActiva': gerenciaMasActiva ? gerenciaMasActiva[0] : '-'
+                    'gerenciaMasActiva': gerenciaMasActiva ? gerenciaMasActiva[0] : '-',
+                    'itemsEnPapelera': registrosEliminados.length
                 };
 
                 Object.entries(elementos).forEach(([id, value]) => {
@@ -1294,7 +1948,7 @@
                 if (!container) return;
                 
                 container.innerHTML = '';
-                const totalRegistros = Math.max(1, registrosOriginales.length); // Evitar división por cero
+                const totalRegistros = Math.max(1, registrosOriginales.length);
 
                 Object.entries(zonasPorGerencia).forEach(([gerencia, zonas]) => {
                     const actividad = actividadPorGerencia[gerencia] || 0;
@@ -1368,7 +2022,7 @@
         }
 
         function cargarTimeline() {
-            filtrarTimeline(); // Call filter to ensure initial load respects any existing filters
+            filtrarTimeline();
         }
 
         function mostrarTimeline(registros) {
@@ -1427,6 +2081,11 @@
                                     <strong>Descripción:</strong> ${descripcion}
                                 </div>
                             </div>
+                            <div class="timeline-actions">
+                                <button class="btn-danger btn-small" onclick="confirmarEliminacion(${registro.id}, '${cliente.replace(/'/g, "\\'")}')">
+                                    🗑️
+                                </button>
+                            </div>
                         `;
                         container.appendChild(item);
                     } catch (itemError) {
@@ -1439,6 +2098,74 @@
                 const container = document.getElementById('timelineContainer');
                 if (container) {
                     container.innerHTML = '<div class="no-data">❌ Error cargando timeline.</div>';
+                }
+            }
+        }
+
+        function cargarPapelera() {
+            try {
+                const container = document.getElementById('papeleraContainer');
+                if (!container) return;
+                
+                if (registrosEliminados.length === 0) {
+                    container.innerHTML = '<div class="no-data">🗑️ La papelera está vacía.</div>';
+                    return;
+                }
+
+                const registrosOrdenados = registrosEliminados.sort((a, b) => {
+                    try {
+                        return new Date(safeGet(b, 'fechaEliminacion')) - new Date(safeGet(a, 'fechaEliminacion'));
+                    } catch {
+                        return 0;
+                    }
+                });
+                
+                container.innerHTML = '';
+                
+                registrosOrdenados.forEach(registro => {
+                    try {
+                        const fechaEliminacion = safeGet(registro, 'fechaEliminacion');
+                        const fechaEliminacionStr = fechaEliminacion ? 
+                            new Date(fechaEliminacion).toLocaleDateString('es-MX', { 
+                                year: 'numeric', month: 'short', day: 'numeric' 
+                            }) : 'Fecha inválida';
+                        
+                        const cliente = sanitizeString(safeGet(registro, 'cliente')) || 'Cliente no especificado';
+                        const gerencia = sanitizeString(safeGet(registro, 'gerencia')) || 'Sin gerencia';
+                        const zona = sanitizeString(safeGet(registro, 'zona')) || 'Sin zona';
+                        const tipo = sanitizeString(safeGet(registro, 'tipoInteraccion')) || 'Sin tipo';
+                        const descripcion = sanitizeString(safeGet(registro, 'descripcion')) || 'Sin descripción';
+
+                        const item = document.createElement('div');
+                        item.className = 'trash-item';
+                        item.innerHTML = `
+                            <div class="trash-date">Eliminado: ${fechaEliminacionStr}</div>
+                            <div class="trash-content">
+                                <div class="trash-cliente">${cliente} - ${gerencia} (${zona})</div>
+                                <div class="trash-descripcion">
+                                    <strong>${tipo.toUpperCase()}:</strong> ${descripcion.substring(0, 100)}${descripcion.length > 100 ? '...' : ''}
+                                </div>
+                            </div>
+                            <div class="trash-actions">
+                                <button class="btn-success btn-small" onclick="restaurarRegistro(${registro.id}, ${registro.originalId}, '${cliente.replace(/'/g, "\\'")}')">
+                                    ↩️
+                                </button>
+                                <button class="btn-danger btn-small" onclick="confirmarEliminacionPermanente(${registro.id}, '${cliente.replace(/'/g, "\\'")}')">
+                                    ❌
+                                </button>
+                            </div>
+                        `;
+                        container.appendChild(item);
+                    } catch (itemError) {
+                        console.error('❌ Error procesando item de papelera:', itemError, registro);
+                    }
+                });
+                console.log(`🗑️ Papelera cargada con ${registrosOrdenados.length} items`);
+            } catch (error) {
+                console.error('❌ Error cargando papelera:', error);
+                const container = document.getElementById('papeleraContainer');
+                if (container) {
+                    container.innerHTML = '<div class="no-data">❌ Error cargando papelera.</div>';
                 }
             }
         }
@@ -1587,17 +2314,16 @@
         // FUNCIONES DE SINCRONIZACIÓN Y RECUPERACIÓN
         // =================================================================
         
-        // Intentar sincronizar datos de memoria con IndexedDB cuando se reconecte
         async function sincronizarDatosMemoria() {
-            if (dbStatus === 'offline' || !db || memoryFallback.length === 0) return;
+            if (dbStatus === 'offline' || !db || (memoryFallback.length === 0 && trashFallback.length === 0)) return;
             
-            console.log(`🔄 Sincronizando ${memoryFallback.length} registros de memoria...`);
+            console.log(`🔄 Sincronizando ${memoryFallback.length} registros + ${trashFallback.length} papelera...`);
             let sincronizados = 0;
             let errores = 0;
             
+            // Sincronizar registros principales
             for (const registro of [...memoryFallback]) {
                 try {
-                    // Remover el ID temporal para que IndexedDB asigne uno nuevo
                     const registroLimpio = { ...registro };
                     delete registroLimpio.id;
                     
@@ -1610,13 +2336,37 @@
                         request.onerror = reject;
                     });
                     
-                    // Remover de memoria fallback una vez sincronizado
                     const index = memoryFallback.findIndex(r => r.id === registro.id);
                     if (index > -1) memoryFallback.splice(index, 1);
                     sincronizados++;
                     
                 } catch (syncError) {
                     console.error('❌ Error sincronizando registro:', syncError);
+                    errores++;
+                }
+            }
+
+            // Sincronizar papelera
+            for (const registro of [...trashFallback]) {
+                try {
+                    const registroLimpio = { ...registro };
+                    delete registroLimpio.id;
+                    
+                    const transaction = db.transaction([TRASH_STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(TRASH_STORE_NAME);
+                    const request = store.add(registroLimpio);
+                    
+                    await new Promise((resolve, reject) => {
+                        request.onsuccess = resolve;
+                        request.onerror = reject;
+                    });
+                    
+                    const index = trashFallback.findIndex(r => r.id === registro.id);
+                    if (index > -1) trashFallback.splice(index, 1);
+                    sincronizados++;
+                    
+                } catch (syncError) {
+                    console.error('❌ Error sincronizando papelera:', syncError);
                     errores++;
                 }
             }
@@ -1632,7 +2382,6 @@
         setInterval(async () => {
             if (dbStatus === 'offline') {
                 try {
-                    // Intentar reconectar
                     await initDB();
                     if (dbStatus === 'online') {
                         console.log('🔄 Reconectado a IndexedDB');
@@ -1642,11 +2391,10 @@
                     console.log('🔴 Aún sin conexión a BD');
                 }
             }
-        }, 30000); // Verificar cada 30 segundos
+        }, 30000);
 
-        // Manejar visibilidad de la página para sincronizar cuando regrese el usuario
         document.addEventListener('visibilitychange', async () => {
-            if (!document.hidden && dbStatus === 'online' && memoryFallback.length > 0) {
+            if (!document.hidden && dbStatus === 'online' && (memoryFallback.length > 0 || trashFallback.length > 0)) {
                 await sincronizarDatosMemoria();
             }
         });
@@ -1663,7 +2411,7 @@
         window.addEventListener('unhandledrejection', (event) => {
             console.error('❌ Promise rechazada no manejada:', event.reason);
             mostrarMensaje('⚠️ Error de proceso. Los datos se guardan localmente.', 'warning');
-            event.preventDefault(); // Evitar que se muestre en consola
+            event.preventDefault();
         });
 
         // =================================================================
@@ -1671,7 +2419,6 @@
         // =================================================================
         
         document.addEventListener('DOMContentLoaded', () => {
-            // Validación en tiempo real para el formulario
             const form = document.getElementById('registroForm');
             if (form) {
                 form.addEventListener('input', (event) => {
@@ -1681,7 +2428,6 @@
                     }
                 });
 
-                // Validación específica para gerencia-zona
                 const gerenciaSelect = document.getElementById('gerenciaReg');
                 const zonaSelect = document.getElementById('zonaReg');
                 
@@ -1698,33 +2444,20 @@
                     });
                 }
             }
+
+            // Cerrar modal al hacer clic fuera
+            window.onclick = function(event) {
+                const modal = document.getElementById('confirmModal');
+                if (event.target === modal) {
+                    cerrarModal();
+                }
+            }
         });
 
         // =================================================================
-        // FUNCIONES DE UTILIDAD ADICIONALES
+        // FUNCIONES DE EXPORTACIÓN (MISMAS QUE ANTES)
         // =================================================================
         
-        // This function is no longer used for general export, but kept for debugging if needed.
-        function exportarDatos() {
-            try {
-                const dataStr = JSON.stringify(registrosOriginales, null, 2);
-                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-                
-                const exportFileDefaultName = `seguimiento_clientes_${new Date().toISOString().split('T')[0]}.json`;
-                
-                const linkElement = document.createElement('a');
-                linkElement.setAttribute('href', dataUri);
-                linkElement.setAttribute('download', exportFileDefaultName);
-                linkElement.click();
-                
-                mostrarMensaje('✅ Datos exportados correctamente', 'success');
-                console.log('📤 Datos exportados');
-            } catch (error) {
-                console.error('❌ Error exportando datos:', error);
-                mostrarMensaje('🔴 Error al exportar los datos', 'error');
-            }
-        }
-
         function getEstadisticasBasicas() {
             try {
                 const stats = {
@@ -1734,6 +2467,7 @@
                     consultoresActivos: new Set(registrosOriginales.map(r => sanitizeString(safeGet(r, 'consultor'))).filter(Boolean)).size,
                     tiposInteraccion: new Set(registrosOriginales.map(r => sanitizeString(safeGet(r, 'tipoInteraccion'))).filter(Boolean)).size,
                     registrosMemoria: memoryFallback.length,
+                    registrosPapelera: registrosEliminados.length,
                     estadoBD: dbStatus
                 };
                 return stats;
@@ -1743,13 +2477,8 @@
             }
         }
 
-        /**
-         * Obtiene los datos filtrados según la pestaña activa y sus filtros.
-         * @param {string} tabName - Nombre de la pestaña ('dashboard' o 'timeline').
-         * @returns {Array} - Array de registros filtrados.
-         */
         function getFilteredDataForExport(tabName) {
-            let filteredData = [...registrosOriginales]; // Start with all original records
+            let filteredData = [...registrosOriginales];
 
             if (tabName === 'timeline') {
                 const filtroGerencia = sanitizeString(document.getElementById('filtroGerencia')?.value || '');
@@ -1815,14 +2544,9 @@
                 }
             }
             
-            // Ensure data is valid before returning
             return filteredData.filter(r => r && typeof r === 'object' && sanitizeString(safeGet(r, 'cliente')));
         }
 
-        /**
-         * Exporta los datos a un archivo XLSX.
-         * @param {string} tabName - La pestaña desde la que se exporta ('dashboard' o 'timeline').
-         */
         function exportToXLSX(tabName) {
             console.log(`📤 Iniciando exportación XLSX para: ${tabName}`);
             const dataToExport = getFilteredDataForExport(tabName);
@@ -1837,7 +2561,6 @@
             let fileName = `dayton_${tabName}_${today}.xlsx`;
 
             if (tabName === 'dashboard') {
-                // Sheet 1: General Statistics
                 const stats = getEstadisticasBasicas();
                 const statsData = [
                     ["Estadística", "Valor"],
@@ -1845,12 +2568,12 @@
                     ["Clientes Únicos", stats.clientesUnicos],
                     ["Gerencias Activas", stats.gerenciasActivas],
                     ["Consultores Activos", stats.consultoresActivos],
-                    ["Tipos de Interacción Únicos", stats.tiposInteraccion]
+                    ["Tipos de Interacción Únicos", stats.tiposInteraccion],
+                    ["Registros en Papelera", stats.registrosPapelera]
                 ];
                 const ws1 = XLSX.utils.aoa_to_sheet(statsData);
                 XLSX.utils.book_append_sheet(wb, ws1, "Estadísticas Generales");
 
-                // Sheet 2: Management Summary
                 const actividadPorGerencia = {};
                 dataToExport.forEach(r => {
                     const gerencia = sanitizeString(safeGet(r, 'gerencia'));
@@ -1870,7 +2593,6 @@
                 const ws2 = XLSX.utils.aoa_to_sheet(resumenGerenciasData);
                 XLSX.utils.book_append_sheet(wb, ws2, "Resumen por Gerencia");
 
-                // Sheet 3: Detailed Records
                 const detailedHeaders = [
                     "Fecha", "Tipo de Interacción", "Cliente", "Gerencia", "Zona Comercial", "Consultor/a", "Descripción"
                 ];
@@ -1908,10 +2630,6 @@
             console.log('✅ XLSX exportado');
         }
 
-        /**
-         * Exporta los datos a un archivo CSV.
-         * @param {string} tabName - La pestaña desde la que se exporta ('dashboard' o 'timeline').
-         */
         function exportToCSV(tabName) {
             console.log(`📤 Iniciando exportación CSV para: ${tabName}`);
             const dataToExport = getFilteredDataForExport(tabName);
@@ -1952,7 +2670,7 @@
                 ]);
             }
 
-            const csvContent = "\uFEFF" + [ // Add BOM for UTF-8 compatibility with Excel
+            const csvContent = "\uFEFF" + [
                 headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','),
                 ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
             ].join('\n');
@@ -1962,7 +2680,7 @@
             const fileName = `dayton_${tabName}_${today}.csv`;
 
             const link = document.createElement('a');
-            if (link.download !== undefined) { // Feature detection for download attribute
+            if (link.download !== undefined) {
                 const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
                 link.setAttribute('download', fileName);
@@ -1978,10 +2696,6 @@
             }
         }
 
-        /**
-         * Exporta los datos a un archivo PDF.
-         * @param {string} tabName - La pestaña desde la que se exporta ('dashboard' o 'timeline').
-         */
         function exportToPDF(tabName) {
             console.log(`📤 Iniciando exportación PDF para: ${tabName}`);
             const { jsPDF } = window.jspdf;
@@ -1989,17 +2703,15 @@
             const today = new Date().toISOString().split('T')[0];
             let fileName = `dayton_${tabName}_${today}.pdf`;
 
-            // Set font for Spanish characters
             doc.setFont("helvetica");
 
-            // Header for all PDFs
             doc.setFontSize(18);
-            doc.setTextColor(44, 62, 80); // #2c3e50
+            doc.setTextColor(44, 62, 80);
             doc.text("University of Dayton Publishing", doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
             doc.setFontSize(12);
-            doc.setTextColor(127, 140, 141); // #7f8c8d
+            doc.setTextColor(127, 140, 141);
             doc.text("Sistema de Seguimiento de Clientes", doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
-            doc.line(10, 35, doc.internal.pageSize.getWidth() - 10, 35); // Horizontal line
+            doc.line(10, 35, doc.internal.pageSize.getWidth() - 10, 35);
 
             let yOffset = 45;
 
@@ -2012,7 +2724,6 @@
                     return;
                 }
 
-                // Dashboard: General Statistics
                 doc.setFontSize(16);
                 doc.setTextColor(44, 62, 80);
                 doc.text("Estadísticas Generales", 14, yOffset);
@@ -2023,7 +2734,8 @@
                     ["Clientes Únicos", stats.clientesUnicos],
                     ["Gerencias Activas", stats.gerenciasActivas],
                     ["Consultores Activos", stats.consultoresActivos],
-                    ["Tipos de Interacción Únicos", stats.tiposInteraccion]
+                    ["Tipos de Interacción Únicos", stats.tiposInteraccion],
+                    ["Registros en Papelera", stats.registrosPapelera]
                 ];
                 doc.autoTable({
                     startY: yOffset,
@@ -2031,7 +2743,7 @@
                     body: statsTableData,
                     theme: 'striped',
                     styles: { fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
-                    headStyles: { fillColor: [102, 126, 234], textColor: 255, fontStyle: 'bold' }, // #667eea
+                    headStyles: { fillColor: [102, 126, 234], textColor: 255, fontStyle: 'bold' },
                     margin: { left: 10, right: 10 },
                     didDrawPage: function (data) {
                         doc.setFontSize(10);
@@ -2041,7 +2753,6 @@
                 });
                 yOffset = doc.autoTable.previous.finalY + 15;
 
-                // Dashboard: Management Summary
                 doc.setFontSize(16);
                 doc.setTextColor(44, 62, 80);
                 doc.text("Resumen por Gerencia", 14, yOffset);
@@ -2078,9 +2789,8 @@
                 });
                 yOffset = doc.autoTable.previous.finalY + 15;
 
-                // Dashboard: Detailed Records
-                doc.addPage(); // Start new page for detailed records
-                yOffset = 45; // Reset yOffset for new page
+                doc.addPage();
+                yOffset = 45;
                 doc.setFontSize(18);
                 doc.setTextColor(44, 62, 80);
                 doc.text("University of Dayton Publishing", doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
@@ -2115,13 +2825,13 @@
                     styles: { fontSize: 8, cellPadding: 1, overflow: 'linebreak' },
                     headStyles: { fillColor: [102, 126, 234], textColor: 255, fontStyle: 'bold' },
                     columnStyles: {
-                        0: { cellWidth: 18 }, // Fecha
-                        1: { cellWidth: 20 }, // Tipo
-                        2: { cellWidth: 30 }, // Cliente
-                        3: { cellWidth: 20 }, // Gerencia
-                        4: { cellWidth: 20 }, // Zona
-                        5: { cellWidth: 25 }, // Consultor
-                        6: { cellWidth: 'auto' } // Descripción
+                        0: { cellWidth: 18 },
+                        1: { cellWidth: 20 },
+                        2: { cellWidth: 30 },
+                        3: { cellWidth: 20 },
+                        4: { cellWidth: 20 },
+                        5: { cellWidth: 25 },
+                        6: { cellWidth: 'auto' }
                     },
                     margin: { left: 10, right: 10 },
                     didDrawPage: function (data) {
@@ -2163,15 +2873,15 @@
                     body: rows,
                     theme: 'striped',
                     styles: { fontSize: 8, cellPadding: 1, overflow: 'linebreak' },
-                    headStyles: { fillColor: [102, 126, 234], textColor: 255, fontStyle: 'bold' }, // #667eea
+                    headStyles: { fillColor: [102, 126, 234], textColor: 255, fontStyle: 'bold' },
                     columnStyles: {
-                        0: { cellWidth: 18 }, // Fecha
-                        1: { cellWidth: 20 }, // Tipo
-                        2: { cellWidth: 30 }, // Cliente
-                        3: { cellWidth: 20 }, // Gerencia
-                        4: { cellWidth: 20 }, // Zona
-                        5: { cellWidth: 25 }, // Consultor
-                        6: { cellWidth: 'auto' } // Descripción
+                        0: { cellWidth: 18 },
+                        1: { cellWidth: 20 },
+                        2: { cellWidth: 30 },
+                        3: { cellWidth: 20 },
+                        4: { cellWidth: 20 },
+                        5: { cellWidth: 25 },
+                        6: { cellWidth: 'auto' }
                     },
                     margin: { left: 10, right: 10 },
                     didDrawPage: function (data) {
@@ -2187,32 +2897,73 @@
             console.log('✅ PDF exportado');
         }
 
+        // =================================================================
+        // FUNCIONES DE UTILIDAD Y DEBUG
+        // =================================================================
+        
+        function exportarDatos() {
+            try {
+                const dataStr = JSON.stringify(registrosOriginales, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `seguimiento_clientes_${new Date().toISOString().split('T')[0]}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                
+                mostrarMensaje('✅ Datos exportados correctamente', 'success');
+                console.log('📤 Datos exportados');
+            } catch (error) {
+                console.error('❌ Error exportando datos:', error);
+                mostrarMensaje('🔴 Error al exportar los datos', 'error');
+            }
+        }
 
-        // Función de debugging disponible en consola
+        // Funciones de debugging disponibles en consola
         window.debugDayton = {
             stats: getEstadisticasBasicas,
-            exportar: exportarDatos, // Old JSON export, kept for reference/debugging
+            exportar: exportarDatos,
             sincronizar: sincronizarDatosMemoria,
             limpiarMemoria: () => {
                 memoryFallback.length = 0;
+                trashFallback.length = 0;
                 console.log('🧹 Memoria fallback limpiada');
             },
             mostrarDatos: () => {
                 console.log('📊 Registros originales:', registrosOriginales);
                 console.log('💾 Memoria fallback:', memoryFallback);
+                console.log('🗑️ Papelera:', registrosEliminados);
                 console.log('🔧 Estadísticas:', getEstadisticasBasicas());
+            },
+            // Nuevas funciones de debug para eliminación
+            eliminarTodo: () => {
+                console.warn('⚠️ PELIGRO: Esta función eliminará TODOS los datos');
+                if (confirm('¿Estás SEGURO de que quieres eliminar todos los datos?')) {
+                    limpiarBaseDatos();
+                }
+            },
+            restaurarTodoPapelera: () => {
+                console.log('↩️ Restaurando todos los items de papelera...');
+                restaurarTodos();
+            },
+            vaciarPapeleraDebug: () => {
+                console.warn('⚠️ PELIGRO: Esta función vaciará la papelera permanentemente');
+                if (confirm('¿Estás SEGURO de que quieres vaciar la papelera?')) {
+                    vaciarPapelera();
+                }
             }
         };
 
         console.log('🔧 Funciones de debug disponibles en window.debugDayton');
-        console.log('📋 Sistema de seguimiento de clientes Dayton inicializado correctamente');
-    </script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js')
-          .then(reg => console.log('✅ Service Worker registrado', reg))
-          .catch(err => console.error('❌ Error al registrar Service Worker', err));
-      }
+        console.log('📋 Sistema de seguimiento de clientes Dayton con eliminación y papelera inicializado correctamente');
+        console.log('🆕 NUEVAS CARACTERÍSTICAS:');
+        console.log('   • Eliminación individual con botón 🗑️ en cada registro');
+        console.log('   • Eliminación masiva de registros filtrados');
+        console.log('   • Papelera de reciclaje con funciones de restaurar/eliminar permanentemente');
+        console.log('   • Limpieza total de la base de datos');
+        console.log('   • Estadísticas de papelera en el dashboard');
     </script>
 </body>
 </html>
