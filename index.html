@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seguimiento de Clientes - Dayton</title>
+    <title>Seguimiento de Clientes - Dayton (Versión IndexedDB Mejorada)</title>
     <style>
         * {
             margin: 0;
@@ -314,12 +314,13 @@
         
         .tipo-visita { background: #d4edda; color: #155724; }
         .tipo-llamada { background: #cce5ff; color: #004085; }
+        .tipo-mensaje { background: #e8f5e8; color: #2e7d32; }
         .tipo-email { background: #fff3cd; color: #856404; }
         .tipo-capacitacion { background: #f8d7da; color: #721c24; }
-        .tipo-presentacion { background: #d1ecf1; color: #0c5460; }
         .tipo-seguimiento { background: #e2e3e5; color: #383d41; }
-        .tipo-renovacion { background: #d4e8fc; color: #0b5394; }
-        
+        .tipo-sesion { background: #fff8e1; color: #f57f17; }
+        .tipo-presentacion { background: #d1ecf1; color: #0c5460; }
+                
         .timeline-cliente {
             font-weight: 600;
             color: #2c3e50;
@@ -685,11 +686,12 @@
                                 <option value="">Seleccionar tipo</option>
                                 <option value="visita">🏫 Visita</option>
                                 <option value="llamada">📞 Llamada</option>
+                                <option value="mensaje">💬 Mensaje</option>
                                 <option value="email">📧 Email</option>
                                 <option value="capacitacion">🎓 Capacitación</option>
-                                <option value="presentacion">📋 Presentación</option>
                                 <option value="seguimiento">📝 Seguimiento</option>
-                                <option value="renovacion">🔄 Renovación</option>
+                                <option value="sesion">👨‍🏫 Sesión Académica</option>
+                                <option value="presentacion">📋 Presentación</option>
                             </select>
                             <div class="validation-error" id="error-tipoInteraccion"></div>
                         </div>
@@ -776,11 +778,12 @@
                             <option value="">Todos los tipos</option>
                             <option value="visita">🏫 Visitas</option>
                             <option value="llamada">📞 Llamadas</option>
+                            <option value="mensaje">💬 Mensaje</option>
                             <option value="email">📧 Emails</option>
                             <option value="capacitacion">🎓 Capacitaciones</option>
-                            <option value="presentacion">📋 Presentaciones</option>
                             <option value="seguimiento">📝 Seguimientos</option>
-                            <option value="renovacion">🔄 Renovaciones</option>
+                            <option value="sesion">👨‍🏫 Sesiones Académicas</option>
+                            <option value="presentacion">📋 Presentaciones</option>
                         </select>
                     </div>
                     <div>
@@ -2057,9 +2060,9 @@
                         }) : 'Fecha inválida';
                         
                         const tipoIcons = { 
-                            'visita': '🏫', 'llamada': '📞', 'email': '📧', 
-                            'capacitacion': '🎓', 'presentacion': '📋', 
-                            'seguimiento': '📝', 'renovacion': '🔄' 
+                            'visita': '🏫', 'llamada': '📞', 'mensaje': '💬',
+                            'email': '📧', 'capacitacion': '🎓', 'seguimiento': '📝',
+                            'sesion': '👨‍🏫', 'presentacion': '📋'
                         };
                         
                         const tipo = sanitizeString(safeGet(registro, 'tipoInteraccion'));
@@ -2967,4 +2970,3 @@
     </script>
 </body>
 </html>
-
