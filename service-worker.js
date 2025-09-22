@@ -1,12 +1,14 @@
-const CACHE_NAME = 'seguimiento-dayton-v1';
+const CACHE_NAME = 'seguimiento-dayton-v2';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './styles.css',        // si los separas
-  './app.js',            // si los separas
+  './icono-192.png',
+  './icono-512.png',
+  './auth.js',
+  './github-config.js',
+  './github-sync.js',
+  './admin-panel.js',
   'https://unpkg.com/xlsx/dist/xlsx.full.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js'
