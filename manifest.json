@@ -1,11 +1,11 @@
 {
-  "name": "Seguimiento Dayton",
-  "short_name": "Dayton",
+  "name": "Seguimiento de Clientes - University of Dayton Publishing",
+  "short_name": "Dayton Seguimiento",
   "description": "Herramienta para el seguimiento de clientes de University of Dayton Publishing.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#667eea",
-  "theme_color": "#667eea",
+  "background_color": "#ffffff",
+  "theme_color": "#2c3e50",
   "orientation": "portrait",
   "lang": "es-MX",
   "icons": [
