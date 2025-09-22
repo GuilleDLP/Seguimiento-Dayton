@@ -3,7 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seguimiento de Clientes - Dayton</title>
+    <title>Seguimiento de Clientes - University of Dayton Publishing</title>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    <!-- Sistema de autenticación -->
+    <script src="./auth.js" defer></script>
+    <!-- Configuración de GitHub -->
+    <script src="./github-config.js" defer></script>
+    <!-- Sistema de sincronización GitHub -->
+    <script src="./github-sync.js" defer></script>
+    <!-- Panel de administrador -->
+    <script src="./admin-panel.js" defer></script>
     <style>
         * {
             margin: 0;
@@ -33,7 +43,28 @@
             background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             color: white;
             padding: 30px;
-            text-align: center;
+            position: relative;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            text-align: left;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info span {
+            font-weight: 500;
+            color: #ecf0f1;
         }
         
         .header h1 {
@@ -516,8 +547,100 @@
             text-align: center;
             display: flex;
             justify-content: center;
-            gap: 15px;
+            gap: 20px;
             flex-wrap: wrap;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            min-width: 200px;
+        }
+
+        .button-group h4 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 16px;
+            font-weight: 600;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e1e8ed;
+            width: 100%;
+            text-align: center;
+        }
+
+        .button-group .btn-export,
+        .button-group .btn-sync {
+            margin: 5px;
+            min-width: 160px;
+        }
+
+        .btn-sync {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-sync:hover {
+            background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(23, 162, 184, 0.3);
+        }
+
+        .btn-sync:active {
+            transform: translateY(0);
+        }
+
+        .btn-sync:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-sync.syncing {
+            background: #ffc107;
+            cursor: wait;
+        }
+
+        .btn-sync.syncing::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            width: 16px;
+            height: 16px;
+            margin-top: -8px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .export-buttons-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .button-group {
+                min-width: 100%;
+            }
         }
 
         .bulk-actions {
@@ -596,8 +719,13 @@
     
     <div class="container">
         <div class="header">
-            <h1>Seguimiento de Clientes</h1>
-            <p>University of Dayton Publishing - Sistema de Registro Anual</p>
+            <div class="header-content">
+                <div class="header-title">
+                    <h1>Seguimiento de Clientes</h1>
+                    <p>University of Dayton Publishing - Sistema de Registro Anual</p>
+                </div>
+                <div id="userInfo" class="user-info" style="display: none;"></div>
+            </div>
         </div>
         
         <div class="nav-tabs">
@@ -699,9 +827,7 @@
                             <label for="consultor">Consultor/a</label>
                             <select id="consultor" name="consultor" required>
                                 <option value="">Seleccionar consultor</option>
-                                <option value="Fernanda Villarreal Martínez">Fernanda Villarreal Martínez</option>
-                                <option value="Ana Aguilar Lee">Ana Aguilar Lee</option>
-                                <option value="Guillermo de la Parra Tron">Guillermo de la Parra Tron</option>
+                                <!-- Las opciones se cargan dinámicamente desde los usuarios del sistema -->
                             </select>
                             <div class="validation-error" id="error-consultor"></div>
                         </div>
@@ -790,9 +916,7 @@
                         <label for="filtroConsultor">Consultor:</label>
                         <select id="filtroConsultor" onchange="filtrarTimeline()">
                             <option value="">Todos los consultores</option>
-                            <option value="Fernanda Villarreal Martínez">Fernanda Villarreal Martínez</option>
-                            <option value="Ana Aguilar Lee">Ana Aguilar Lee</option>
-                            <option value="Guillermo de la Parra Tron">Guillermo de la Parra Tron</option>
+                            <!-- Las opciones se cargan dinámicamente desde los usuarios del sistema -->
                         </select>
                     </div>
                 </div>
@@ -1201,7 +1325,7 @@
                 const registroEliminado = {
                     ...registro,
                     originalId: id,
-                    fechaEliminacion: new Date().toISOString()
+                    fechaEliminacion: obtenerFechaHoyLocal()
                 };
 
                 try {
@@ -1615,7 +1739,7 @@
             try {
                 await initDB();
                 await cargarDatosYActualizarUI();
-                document.getElementById('fecha').valueAsDate = new Date();
+                document.getElementById('fecha').value = obtenerFechaHoyLocal();
                 console.log('✅ Aplicación iniciada correctamente');
                 cambiarTab(null, 'dashboard'); 
             } catch (error) {
@@ -1623,7 +1747,7 @@
                 updateDBStatus('offline');
                 mostrarMensaje('⚠️ Aplicación iniciada en modo offline. Los datos se guardarán temporalmente.', 'warning');
                 await cargarDatosYActualizarUI();
-                document.getElementById('fecha').valueAsDate = new Date();
+                document.getElementById('fecha').value = obtenerFechaHoyLocal();
                 cambiarTab(null, 'dashboard');
             }
         };
@@ -1631,6 +1755,8 @@
         async function cargarDatosYActualizarUI() {
             console.log('🔄 Actualizando interfaz...');
             await cargarDatos();
+            cargarConsultores(); // Cargar consultores desde el sistema de usuarios
+            actualizarInterfazSegunRol(); // Actualizar elementos de UI según permisos
             actualizarDashboard();
             cargarTimeline();
             cargarClientes();
@@ -1664,18 +1790,82 @@
 
             if (tabName === 'dashboard' && dashboardButtonsContainer) {
                 dashboardButtonsContainer.innerHTML = `
-                    <button class="btn-export" onclick="exportToXLSX('dashboard')">📊 Exportar XLSX</button>
-                    <button class="btn-export csv" onclick="exportToCSV('dashboard')">📄 Exportar CSV</button>
-                    <button class="btn-export pdf" onclick="exportToPDF('dashboard')">📑 Exportar PDF</button>
+                    <div class="button-group">
+                        <h4>📤 Exportar Datos</h4>
+                        <button class="btn-export" onclick="exportToXLSX('dashboard')">📊 Exportar XLSX</button>
+                        <button class="btn-export csv" onclick="exportToCSV('dashboard')">📄 Exportar CSV</button>
+                        <button class="btn-export pdf" onclick="exportToPDF('dashboard')">📑 Exportar PDF</button>
+                    </div>
+                    <div class="button-group">
+                        <h4>☁️ Sincronización</h4>
+                        <button class="btn-sync" onclick="sincronizarManual('dashboard')" id="btnSyncDashboard">
+                            ☁️ Respaldar en GitHub
+                        </button>
+                    </div>
                 `;
             } else if (tabName === 'timeline' && timelineButtonsContainer) {
                 timelineButtonsContainer.innerHTML = `
-                    <button class="btn-export" onclick="exportToXLSX('timeline')">📊 Exportar XLSX</button>
-                    <button class="btn-export csv" onclick="exportToCSV('timeline')">📄 Exportar CSV</button>
-                    <button class="btn-export pdf" onclick="exportToPDF('timeline')">📑 Exportar PDF</button>
+                    <div class="button-group">
+                        <h4>📤 Exportar Datos</h4>
+                        <button class="btn-export" onclick="exportToXLSX('timeline')">📊 Exportar XLSX</button>
+                        <button class="btn-export csv" onclick="exportToCSV('timeline')">📄 Exportar CSV</button>
+                        <button class="btn-export pdf" onclick="exportToPDF('timeline')">📑 Exportar PDF</button>
+                    </div>
+                    <div class="button-group">
+                        <h4>☁️ Sincronización</h4>
+                        <button class="btn-sync" onclick="sincronizarManual('timeline')" id="btnSyncTimeline">
+                            ☁️ Respaldar en GitHub
+                        </button>
+                    </div>
                 `;
             }
-            console.log(`📤 Botones de exportación inyectados para la pestaña: ${tabName}`);
+            console.log(`📤 Botones de exportación y sincronización inyectados para la pestaña: ${tabName}`);
+        }
+
+        async function sincronizarManual(tabName) {
+            console.log(`☁️ Iniciando sincronización manual desde: ${tabName}`);
+
+            // Verificar si hay configuración de GitHub
+            const config = window.obtenerConfiguracionGitHub();
+            if (!config || !config.user || !config.repo || !config.token) {
+                mostrarMensaje('⚠️ GitHub no está configurado. Configure GitHub desde el panel de administración.', 'warning');
+                return;
+            }
+
+            // Obtener botón correspondiente y mostrar estado de carga
+            const botonId = tabName === 'dashboard' ? 'btnSyncDashboard' : 'btnSyncTimeline';
+            const boton = document.getElementById(botonId);
+
+            if (boton) {
+                const textoOriginal = boton.textContent;
+                boton.classList.add('syncing');
+                boton.disabled = true;
+                boton.textContent = '⏳ Sincronizando...';
+            }
+
+            try {
+                // Crear instancia de GitHubSync y ejecutar sincronización
+                const sync = new GitHubSync();
+                const resultado = await sync.sincronizacionCompleta();
+
+                if (resultado) {
+                    mostrarMensaje('✅ Datos respaldados exitosamente en GitHub', 'success');
+                    console.log('✅ Sincronización manual completada');
+                } else {
+                    mostrarMensaje('❌ Error durante la sincronización', 'error');
+                    console.log('❌ Error en sincronización manual');
+                }
+            } catch (error) {
+                console.error('❌ Error en sincronización manual:', error);
+                mostrarMensaje('❌ Error de conexión durante el respaldo', 'error');
+            } finally {
+                // Restaurar botón
+                if (boton) {
+                    boton.classList.remove('syncing');
+                    boton.disabled = false;
+                    boton.textContent = '☁️ Respaldar en GitHub';
+                }
+            }
         }
 
         async function guardarRegistro() {
@@ -1748,8 +1938,15 @@
             registro.zona = registro.zonaReg;
             delete registro.gerenciaReg;
             delete registro.zonaReg;
-            
-            registro.fechaRegistro = new Date().toISOString();
+
+            // Agregar información de quién creó el registro
+            const sesionActual = obtenerUsuarioActual();
+            if (sesionActual) {
+                registro.creadoPor = sesionActual.nombre;
+                registro.usuarioCreador = sesionActual.username;
+            }
+
+            registro.fechaRegistro = obtenerFechaHoyLocal();
 
             try {
                 const id = await addRegistroToDB(registro);
@@ -1778,6 +1975,114 @@
             }
         }
 
+        function cargarConsultores() {
+            try {
+                // Obtener usuarios del sistema de autenticación
+                let usuarios = {};
+                if (window.sistemaAuth && typeof window.sistemaAuth.obtenerUsuarios === 'function') {
+                    usuarios = window.sistemaAuth.obtenerUsuarios() || {};
+                }
+
+                // Obtener todos los usuarios activos excepto el administrador
+                // Los usuarios pueden registrar servicios de cualquier consultor (excepto admin)
+                const consultores = Object.entries(usuarios)
+                    .filter(([username, usuario]) =>
+                        username !== 'admin' &&
+                        usuario.activo !== false &&
+                        usuario.nombre
+                    )
+                    .map(([username, usuario]) => ({
+                        username: username,
+                        nombre: usuario.nombre
+                    }))
+                    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+                // Actualizar dropdown de nuevo registro
+                const selectConsultor = document.getElementById('consultor');
+                if (selectConsultor) {
+                    // Limpiar opciones existentes (excepto la primera)
+                    selectConsultor.innerHTML = '<option value="">Seleccionar consultor</option>';
+
+                    // Agregar consultores
+                    consultores.forEach(consultor => {
+                        const option = document.createElement('option');
+                        option.value = consultor.nombre;
+                        option.textContent = consultor.nombre;
+                        selectConsultor.appendChild(option);
+                    });
+                }
+
+                // Actualizar dropdown de filtro en timeline
+                const filtroConsultor = document.getElementById('filtroConsultor');
+                if (filtroConsultor) {
+                    // Guardar valor seleccionado actual
+                    const valorActual = filtroConsultor.value;
+
+                    // Limpiar opciones existentes (excepto la primera)
+                    filtroConsultor.innerHTML = '<option value="">Todos los consultores</option>';
+
+                    // Agregar consultores
+                    consultores.forEach(consultor => {
+                        const option = document.createElement('option');
+                        option.value = consultor.nombre;
+                        option.textContent = consultor.nombre;
+                        filtroConsultor.appendChild(option);
+                    });
+
+                    // Restaurar valor seleccionado si aún existe
+                    if (valorActual && consultores.some(c => c.nombre === valorActual)) {
+                        filtroConsultor.value = valorActual;
+                    }
+                }
+
+                console.log(`👥 Cargados ${consultores.length} consultores del sistema de usuarios`);
+            } catch (error) {
+                console.error('❌ Error al cargar consultores:', error);
+                // Fallback: usar consultores hardcodeados si hay un error
+                cargarConsultoresFallback();
+            }
+        }
+
+        function cargarConsultoresFallback() {
+            console.log('⚠️ Usando consultores predeterminados como fallback');
+
+            // Lista de consultores predeterminados (sin incluir administrador)
+            const consultoresFallback = [
+                'Guillermo de la Parra',
+                'Homero Pineda',
+                'Fernanda Villarreal',
+                'Ana Aguilar'
+            ];
+
+            // Actualizar dropdown de nuevo registro
+            const selectConsultor = document.getElementById('consultor');
+            if (selectConsultor) {
+                selectConsultor.innerHTML = '<option value="">Seleccionar consultor</option>';
+                consultoresFallback.forEach(nombre => {
+                    const option = document.createElement('option');
+                    option.value = nombre;
+                    option.textContent = nombre;
+                    selectConsultor.appendChild(option);
+                });
+            }
+
+            // Actualizar dropdown de filtro
+            const filtroConsultor = document.getElementById('filtroConsultor');
+            if (filtroConsultor) {
+                const valorActual = filtroConsultor.value;
+                filtroConsultor.innerHTML = '<option value="">Todos los consultores</option>';
+                consultoresFallback.forEach(nombre => {
+                    const option = document.createElement('option');
+                    option.value = nombre;
+                    option.textContent = nombre;
+                    filtroConsultor.appendChild(option);
+                });
+                if (valorActual && consultoresFallback.includes(valorActual)) {
+                    filtroConsultor.value = valorActual;
+                }
+            }
+        }
+
         function actualizarAutocompletado() {
             try {
                 const clientesUnicos = [...new Set(
@@ -1803,7 +2108,7 @@
         
         function limpiarFormulario() {
             document.getElementById('registroForm').reset();
-            document.getElementById('fecha').valueAsDate = new Date();
+            document.getElementById('fecha').value = obtenerFechaHoyLocal();
             clearAllValidationErrors();
             actualizarZonasRegistro();
             console.log('🆕 Formulario limpiado');
@@ -1858,14 +2163,188 @@
             return meses[new Date().getMonth()];
         }
 
+        // Funciones auxiliares para manejo de fechas
+        function formatearFechaLocal(fecha) {
+            // Convierte una fecha a formato YYYY-MM-DD sin afectar la zona horaria
+            if (!fecha) return '';
+
+            const fechaObj = typeof fecha === 'string' ? new Date(fecha) : fecha;
+            const year = fechaObj.getFullYear();
+            const month = String(fechaObj.getMonth() + 1).padStart(2, '0');
+            const day = String(fechaObj.getDate()).padStart(2, '0');
+
+            return `${year}-${month}-${day}`;
+        }
+
+        function parsearFechaLocal(fechaString) {
+            // Parsea una fecha YYYY-MM-DD sin conversión de zona horaria
+            if (!fechaString) return null;
+
+            const [year, month, day] = fechaString.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        function obtenerFechaHoyLocal() {
+            // Obtiene la fecha de hoy en formato YYYY-MM-DD en zona horaria local
+            const hoy = new Date();
+            return formatearFechaLocal(hoy);
+        }
+
+        function compararFechas(fecha1, fecha2) {
+            // Compara dos fechas sin considerar zona horaria
+            const f1 = typeof fecha1 === 'string' ? parsearFechaLocal(fecha1) : fecha1;
+            const f2 = typeof fecha2 === 'string' ? parsearFechaLocal(fecha2) : fecha2;
+
+            if (!f1 || !f2) return 0;
+            return f1.getTime() - f2.getTime();
+        }
+
+        // Funciones para control de permisos
+        function obtenerUsuarioActual() {
+            if (window.sistemaAuth && typeof window.sistemaAuth.obtenerSesionActual === 'function') {
+                return window.sistemaAuth.obtenerSesionActual();
+            }
+            return null;
+        }
+
+        function esUsuarioAdmin() {
+            const sesion = obtenerUsuarioActual();
+            return sesion && sesion.rol === 'admin';
+        }
+
+        function filtrarRegistrosPorPermisos(registros) {
+            const sesion = obtenerUsuarioActual();
+            if (!sesion) {
+                console.warn('⚠️ No hay sesión activa, no se pueden filtrar registros');
+                return [];
+            }
+
+            // Los administradores ven todos los registros
+            if (sesion.rol === 'admin') {
+                return registros;
+            }
+
+            // Los usuarios regulares solo ven registros que ellos crearon
+            const nombreUsuario = sesion.nombre;
+            const usernameUsuario = sesion.username;
+
+            return registros.filter(registro => {
+                // Primero verificar con el nuevo campo 'creadoPor'
+                const creadoPor = sanitizeString(safeGet(registro, 'creadoPor'));
+                if (creadoPor) {
+                    return creadoPor === nombreUsuario;
+                }
+
+                // Fallback para registros antiguos: usar el campo 'consultor'
+                // (esto es temporal mientras migran los datos existentes)
+                const consultorRegistro = sanitizeString(safeGet(registro, 'consultor'));
+                return consultorRegistro === nombreUsuario;
+            });
+        }
+
+        function filtrarPapeleraPorPermisos(registrosPapelera) {
+            const sesion = obtenerUsuarioActual();
+            if (!sesion) {
+                return [];
+            }
+
+            // Los administradores ven todos los registros en papelera
+            if (sesion.rol === 'admin') {
+                return registrosPapelera;
+            }
+
+            // Los usuarios regulares solo ven sus propios registros eliminados
+            const nombreUsuario = sesion.nombre;
+            return registrosPapelera.filter(item => {
+                if (item.registroEliminado) {
+                    // Primero verificar con el nuevo campo 'creadoPor'
+                    const creadoPor = sanitizeString(safeGet(item.registroEliminado, 'creadoPor'));
+                    if (creadoPor) {
+                        return creadoPor === nombreUsuario;
+                    }
+
+                    // Fallback para registros antiguos
+                    const consultorRegistro = sanitizeString(safeGet(item.registroEliminado, 'consultor'));
+                    return consultorRegistro === nombreUsuario;
+                }
+                return false;
+            });
+        }
+
+        function mostrarMensajePermisos() {
+            const sesion = obtenerUsuarioActual();
+            if (sesion && sesion.rol !== 'admin') {
+                return `📋 Mostrando solo registros creados por: ${sesion.nombre}`;
+            }
+            return null;
+        }
+
+        function actualizarInterfazSegunRol() {
+            const esAdmin = esUsuarioAdmin();
+
+            // Ocultar/mostrar botones de eliminación masiva y limpieza (solo para admins)
+            const elementosAdminSolo = [
+                'confirmarLimpiezaTotal',
+                'confirmarVaciarPapelera'
+            ];
+
+            elementosAdminSolo.forEach(id => {
+                const elemento = document.querySelector(`[onclick*="${id}"]`);
+                if (elemento) {
+                    elemento.style.display = esAdmin ? 'inline-block' : 'none';
+                }
+            });
+
+            // Mantener botón de sincronización del header visible para todos
+            // Los usuarios ahora pueden hacer respaldo manual desde Dashboard y Timeline
+
+            // Actualizar botones de exportación con texto específico del rol
+            const botonesExport = document.querySelectorAll('[onclick*="export"]');
+            botonesExport.forEach(boton => {
+                if (!esAdmin && boton.textContent.includes('Exportar')) {
+                    const textoOriginal = boton.textContent;
+                    boton.title = 'Solo exportará sus propios registros';
+                }
+            });
+
+            // El filtro de consultor ahora está disponible para todos los usuarios
+            // Ya que pueden registrar servicios de cualquier consultor
+
+            console.log(`🔒 Interfaz actualizada para rol: ${esAdmin ? 'admin' : 'usuario'}`);
+        }
+
         function actualizarDashboard() {
             try {
                 console.log('📊 Actualizando dashboard...');
-                
+
+                // Aplicar filtros de permisos primero
+                let registrosFiltrados = filtrarRegistrosPorPermisos(registrosOriginales);
+                registrosFiltrados = registrosFiltrados.filter(r => r && typeof r === 'object');
+
+                // Mostrar mensaje de permisos si corresponde
+                const mensajePermisos = mostrarMensajePermisos();
+                if (mensajePermisos) {
+                    const dashboard = document.getElementById('dashboard');
+                    let mensajeDiv = dashboard.querySelector('.mensaje-permisos');
+                    if (!mensajeDiv) {
+                        mensajeDiv = document.createElement('div');
+                        mensajeDiv.className = 'mensaje-permisos';
+                        mensajeDiv.style.cssText = `
+                            background: #e3f2fd;
+                            color: #1976d2;
+                            padding: 12px 20px;
+                            margin-bottom: 20px;
+                            border-radius: 8px;
+                            border-left: 4px solid #2196f3;
+                            font-weight: 600;
+                        `;
+                        dashboard.insertBefore(mensajeDiv, dashboard.firstChild);
+                    }
+                    mensajeDiv.textContent = mensajePermisos;
+                }
+
                 const fechaDesde = document.getElementById('dashboardFechaDesde')?.value || '';
                 const fechaHasta = document.getElementById('dashboardFechaHasta')?.value || '';
-
-                let registrosFiltrados = registrosOriginales.filter(r => r && typeof r === 'object');
 
                 if (fechaDesde) {
                     registrosFiltrados = registrosFiltrados.filter(r => {
@@ -1897,13 +2376,13 @@
                         .filter(cliente => cliente.length > 0)
                 ).size;
                 
-                const fechaActual = new Date();
+                const fechaActual = parsearFechaLocal(obtenerFechaHoyLocal());
                 const mesActual = fechaActual.getMonth();
                 const añoActual = fechaActual.getFullYear();
-                
+
                 const actividadMes = registrosValidos.filter(r => {
                     try {
-                        const fechaReg = new Date(safeGet(r, 'fecha'));
+                        const fechaReg = parsearFechaLocal(safeGet(r, 'fecha'));
                         return fechaReg.getMonth() === mesActual && fechaReg.getFullYear() === añoActual;
                     } catch {
                         return false;
@@ -1974,13 +2453,15 @@
 
         function filtrarTimeline() {
             try {
+                // Aplicar filtros de permisos primero
+                let registrosFiltrados = filtrarRegistrosPorPermisos(registrosOriginales);
+                registrosFiltrados = registrosFiltrados.filter(r => r && typeof r === 'object');
+
                 const filtroGerencia = sanitizeString(document.getElementById('filtroGerencia')?.value || '');
                 const filtroTipo = sanitizeString(document.getElementById('filtroTipo')?.value || '');
                 const filtroConsultor = sanitizeString(document.getElementById('filtroConsultor')?.value || '');
                 const fechaDesde = document.getElementById('fechaDesde')?.value || '';
                 const fechaHasta = document.getElementById('fechaHasta')?.value || '';
-
-                let registrosFiltrados = registrosOriginales.filter(r => r && typeof r === 'object');
 
                 if (filtroGerencia) {
                     registrosFiltrados = registrosFiltrados.filter(r => 
@@ -2032,30 +2513,47 @@
             try {
                 const container = document.getElementById('timelineContainer');
                 if (!container) return;
-                
-                const registrosValidos = registros.filter(r => 
+
+                // Mostrar mensaje de permisos al inicio del timeline
+                const mensajePermisos = mostrarMensajePermisos();
+                let htmlPermisos = '';
+                if (mensajePermisos) {
+                    htmlPermisos = `
+                        <div class="mensaje-permisos" style="
+                            background: #e3f2fd;
+                            color: #1976d2;
+                            padding: 12px 20px;
+                            margin-bottom: 20px;
+                            border-radius: 8px;
+                            border-left: 4px solid #2196f3;
+                            font-weight: 600;
+                        ">${mensajePermisos}</div>
+                    `;
+                }
+
+                const registrosValidos = registros.filter(r =>
                     r && typeof r === 'object' && sanitizeString(safeGet(r, 'cliente'))
                 );
-                
+
                 if (registrosValidos.length === 0) {
-                    container.innerHTML = '<div class="no-data">📅 No hay registros para mostrar.</div>';
+                    container.innerHTML = htmlPermisos + '<div class="no-data">📅 No hay registros para mostrar.</div>';
                     return;
                 }
 
                 const registrosOrdenados = registrosValidos.sort((a, b) => {
                     try {
-                        return new Date(safeGet(b, 'fecha')) - new Date(safeGet(a, 'fecha'));
+                        return compararFechas(safeGet(b, 'fecha'), safeGet(a, 'fecha'));
                     } catch {
                         return 0;
                     }
                 });
-                
-                container.innerHTML = '';
-                
+
+                container.innerHTML = htmlPermisos;
+
                 registrosOrdenados.forEach(registro => {
                     try {
                         const fechaStr = safeGet(registro, 'fecha');
-                        const fecha = fechaStr ? new Date(fechaStr).toLocaleDateString('es-MX', { 
+                        const fecha = fechaStr ? parsearFechaLocal(fechaStr).toLocaleDateString('es-MX', { 
                             weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' 
                         }) : 'Fecha inválida';
                         
@@ -2071,6 +2569,7 @@
                         const zona = sanitizeString(safeGet(registro, 'zona')) || 'Sin zona';
                         const consultor = sanitizeString(safeGet(registro, 'consultor')) || 'Sin consultor';
                         const descripcion = sanitizeString(safeGet(registro, 'descripcion')) || 'Sin descripción';
+                        const creadoPor = sanitizeString(safeGet(registro, 'creadoPor')) || 'Sin información';
 
                         const item = document.createElement('div');
                         item.className = 'timeline-item';
@@ -2081,6 +2580,7 @@
                                 <div class="timeline-cliente">${cliente} - ${gerencia} (${zona})</div>
                                 <div class="timeline-descripcion">
                                     <strong>Consultor:</strong> ${consultor}<br>
+                                    <strong>Registrado por:</strong> ${creadoPor}<br>
                                     <strong>Descripción:</strong> ${descripcion}
                                 </div>
                             </div>
@@ -2109,27 +2609,47 @@
             try {
                 const container = document.getElementById('papeleraContainer');
                 if (!container) return;
-                
-                if (registrosEliminados.length === 0) {
-                    container.innerHTML = '<div class="no-data">🗑️ La papelera está vacía.</div>';
+
+                // Aplicar filtros de permisos a la papelera
+                const registrosFiltrados = filtrarPapeleraPorPermisos(registrosEliminados);
+
+                // Mostrar mensaje de permisos
+                const mensajePermisos = mostrarMensajePermisos();
+                let htmlPermisos = '';
+                if (mensajePermisos) {
+                    htmlPermisos = `
+                        <div class="mensaje-permisos" style="
+                            background: #e3f2fd;
+                            color: #1976d2;
+                            padding: 12px 20px;
+                            margin-bottom: 20px;
+                            border-radius: 8px;
+                            border-left: 4px solid #2196f3;
+                            font-weight: 600;
+                        ">${mensajePermisos}</div>
+                    `;
+                }
+
+                if (registrosFiltrados.length === 0) {
+                    container.innerHTML = htmlPermisos + '<div class="no-data">🗑️ La papelera está vacía.</div>';
                     return;
                 }
 
-                const registrosOrdenados = registrosEliminados.sort((a, b) => {
+                const registrosOrdenados = registrosFiltrados.sort((a, b) => {
                     try {
-                        return new Date(safeGet(b, 'fechaEliminacion')) - new Date(safeGet(a, 'fechaEliminacion'));
+                        return compararFechas(safeGet(b, 'fechaEliminacion'), safeGet(a, 'fechaEliminacion'));
                     } catch {
                         return 0;
                     }
                 });
-                
-                container.innerHTML = '';
-                
+
+                container.innerHTML = htmlPermisos;
+
                 registrosOrdenados.forEach(registro => {
                     try {
                         const fechaEliminacion = safeGet(registro, 'fechaEliminacion');
-                        const fechaEliminacionStr = fechaEliminacion ? 
-                            new Date(fechaEliminacion).toLocaleDateString('es-MX', { 
+                        const fechaEliminacionStr = fechaEliminacion ?
+                            parsearFechaLocal(fechaEliminacion).toLocaleDateString('es-MX', { 
                                 year: 'numeric', month: 'short', day: 'numeric' 
                             }) : 'Fecha inválida';
                         
@@ -2209,8 +2729,11 @@
         function obtenerDatosClientes() {
             try {
                 const clientesMap = new Map();
-                
-                registrosOriginales.forEach(registro => {
+
+                // Aplicar filtros de permisos
+                const registrosFiltrados = filtrarRegistrosPorPermisos(registrosOriginales);
+
+                registrosFiltrados.forEach(registro => {
                     if (!registro || typeof registro !== 'object') return;
                     
                     const cliente = sanitizeString(safeGet(registro, 'cliente'));
@@ -2235,7 +2758,7 @@
                     
                     try {
                         const fechaRegistro = safeGet(registro, 'fecha');
-                        if (fechaRegistro && (!clienteData.ultimaInteraccion || new Date(fechaRegistro) > new Date(clienteData.ultimaInteraccion))) {
+                        if (fechaRegistro && (!clienteData.ultimaInteraccion || compararFechas(fechaRegistro, clienteData.ultimaInteraccion) > 0)) {
                             clienteData.ultimaInteraccion = fechaRegistro;
                         }
                     } catch (dateError) {
@@ -2247,7 +2770,7 @@
                     try {
                         if (!a.ultimaInteraccion) return 1;
                         if (!b.ultimaInteraccion) return -1;
-                        return new Date(b.ultimaInteraccion) - new Date(a.ultimaInteraccion);
+                        return compararFechas(b.ultimaInteraccion, a.ultimaInteraccion);
                     } catch {
                         return 0;
                     }
@@ -2265,17 +2788,34 @@
             try {
                 const container = document.getElementById('clientesContainer');
                 if (!container) return;
-                
+
+                // Mostrar mensaje de permisos
+                const mensajePermisos = mostrarMensajePermisos();
+                let htmlPermisos = '';
+                if (mensajePermisos) {
+                    htmlPermisos = `
+                        <div class="mensaje-permisos" style="
+                            background: #e3f2fd;
+                            color: #1976d2;
+                            padding: 12px 20px;
+                            margin-bottom: 20px;
+                            border-radius: 8px;
+                            border-left: 4px solid #2196f3;
+                            font-weight: 600;
+                        ">${mensajePermisos}</div>
+                    `;
+                }
+
                 if (!clientes || clientes.length === 0) {
-                    container.innerHTML = '<div class="no-data">👥 No se encontraron clientes.</div>';
+                    container.innerHTML = htmlPermisos + '<div class="no-data">👥 No se encontraron clientes.</div>';
                     return;
                 }
 
-                container.innerHTML = '';
+                container.innerHTML = htmlPermisos;
                 clientes.forEach(cliente => {
                     try {
                         const ultimaInteraccion = cliente.ultimaInteraccion ? 
-                            new Date(cliente.ultimaInteraccion).toLocaleDateString('es-MX') : 
+                            parsearFechaLocal(cliente.ultimaInteraccion).toLocaleDateString('es-MX') : 
                             'Sin fecha';
                         
                         const totalInteracciones = Object.values(cliente.stats || {}).reduce((a, b) => (a || 0) + (b || 0), 0);
@@ -2481,7 +3021,8 @@
         }
 
         function getFilteredDataForExport(tabName) {
-            let filteredData = [...registrosOriginales];
+            // Aplicar filtros de permisos primero
+            let filteredData = filtrarRegistrosPorPermisos(registrosOriginales);
 
             if (tabName === 'timeline') {
                 const filtroGerencia = sanitizeString(document.getElementById('filtroGerencia')?.value || '');
@@ -2560,7 +3101,13 @@
             }
 
             const wb = XLSX.utils.book_new();
-            const today = new Date().toISOString().split('T')[0];
+            wb.Props = {
+                Title: "Seguimiento de Clientes Dayton",
+                Subject: "Exportación de datos",
+                Author: "Sistema de Seguimiento UDP",
+                CreatedDate: new Date()
+            };
+            const today = obtenerFechaHoyLocal();
             let fileName = `dayton_${tabName}_${today}.xlsx`;
 
             if (tabName === 'dashboard') {
@@ -2600,13 +3147,13 @@
                     "Fecha", "Tipo de Interacción", "Cliente", "Gerencia", "Zona Comercial", "Consultor/a", "Descripción"
                 ];
                 const detailedData = dataToExport.map(r => [
-                    safeGet(r, 'fecha'),
-                    safeGet(r, 'tipoInteraccion'),
-                    safeGet(r, 'cliente'),
-                    safeGet(r, 'gerencia'),
-                    safeGet(r, 'zona'),
-                    safeGet(r, 'consultor'),
-                    safeGet(r, 'descripcion')
+                    cleanTextForPDF(safeGet(r, 'fecha')),
+                    cleanTextForPDF(safeGet(r, 'tipoInteraccion')),
+                    cleanTextForPDF(safeGet(r, 'cliente')),
+                    cleanTextForPDF(safeGet(r, 'gerencia')),
+                    cleanTextForPDF(safeGet(r, 'zona')),
+                    cleanTextForPDF(safeGet(r, 'consultor')),
+                    cleanTextForPDF(safeGet(r, 'descripcion'))
                 ]);
                 const ws3 = XLSX.utils.aoa_to_sheet([detailedHeaders, ...detailedData]);
                 XLSX.utils.book_append_sheet(wb, ws3, "Registros Detallados");
@@ -2628,7 +3175,11 @@
                 XLSX.utils.book_append_sheet(wb, ws, "Registros Timeline");
             }
 
-            XLSX.writeFile(wb, fileName);
+            XLSX.writeFile(wb, fileName, {
+                bookType: 'xlsx',
+                type: 'binary',
+                compression: true
+            });
             mostrarMensaje(`✅ Archivo ${fileName} generado exitosamente.`, 'success');
             console.log('✅ XLSX exportado');
         }
@@ -2679,7 +3230,7 @@
             ].join('\n');
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const today = new Date().toISOString().split('T')[0];
+            const today = obtenerFechaHoyLocal();
             const fileName = `dayton_${tabName}_${today}.csv`;
 
             const link = document.createElement('a');
@@ -2702,11 +3253,32 @@
         function exportToPDF(tabName) {
             console.log(`📤 Iniciando exportación PDF para: ${tabName}`);
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const today = new Date().toISOString().split('T')[0];
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const today = obtenerFechaHoyLocal();
             let fileName = `dayton_${tabName}_${today}.pdf`;
 
+            // Configurar fuente para soportar caracteres especiales
             doc.setFont("helvetica");
+
+            // Función auxiliar para limpiar texto con caracteres especiales
+            function cleanTextForPDF(text) {
+                if (!text) return '';
+                return String(text)
+                    .replace(/[À-Æ]/g, 'A')
+                    .replace(/[È-Ë]/g, 'E')
+                    .replace(/[Ì-Ï]/g, 'I')
+                    .replace(/[Ò-Ø]/g, 'O')
+                    .replace(/[Ù-Ü]/g, 'U')
+                    .replace(/[à-æ]/g, 'a')
+                    .replace(/[è-ë]/g, 'e')
+                    .replace(/[ì-ï]/g, 'i')
+                    .replace(/[ò-ø]/g, 'o')
+                    .replace(/[ù-ü]/g, 'u')
+                    .replace(/ñ/g, 'n')
+                    .replace(/Ñ/g, 'N')
+                    .replace(/ç/g, 'c')
+                    .replace(/Ç/g, 'C');
+            }
 
             doc.setFontSize(18);
             doc.setTextColor(44, 62, 80);
@@ -2773,7 +3345,7 @@
                 Object.entries(zonasPorGerencia).forEach(([gerencia, zonas]) => {
                     const actividad = actividadPorGerencia[gerencia] || 0;
                     const porcentaje = ((actividad / totalRegistrosFiltrados) * 100).toFixed(1) + '%';
-                    resumenGerenciasTableData.push([gerencia, actividad, porcentaje]);
+                    resumenGerenciasTableData.push([cleanTextForPDF(gerencia), actividad, porcentaje]);
                 });
 
                 doc.autoTable({
@@ -2811,13 +3383,13 @@
                     "Fecha", "Tipo", "Cliente", "Gerencia", "Zona", "Consultor", "Descripción"
                 ];
                 const detailedData = dataToExport.map(r => [
-                    safeGet(r, 'fecha'),
-                    safeGet(r, 'tipoInteraccion'),
-                    safeGet(r, 'cliente'),
-                    safeGet(r, 'gerencia'),
-                    safeGet(r, 'zona'),
-                    safeGet(r, 'consultor'),
-                    safeGet(r, 'descripcion')
+                    cleanTextForPDF(safeGet(r, 'fecha')),
+                    cleanTextForPDF(safeGet(r, 'tipoInteraccion')),
+                    cleanTextForPDF(safeGet(r, 'cliente')),
+                    cleanTextForPDF(safeGet(r, 'gerencia')),
+                    cleanTextForPDF(safeGet(r, 'zona')),
+                    cleanTextForPDF(safeGet(r, 'consultor')),
+                    cleanTextForPDF(safeGet(r, 'descripcion'))
                 ]);
 
                 doc.autoTable({
@@ -2861,13 +3433,13 @@
                     "Fecha", "Tipo", "Cliente", "Gerencia", "Zona", "Consultor", "Descripción"
                 ];
                 const rows = dataToExport.map(r => [
-                    safeGet(r, 'fecha'),
-                    safeGet(r, 'tipoInteraccion'),
-                    safeGet(r, 'cliente'),
-                    safeGet(r, 'gerencia'),
-                    safeGet(r, 'zona'),
-                    safeGet(r, 'consultor'),
-                    safeGet(r, 'descripcion')
+                    cleanTextForPDF(safeGet(r, 'fecha')),
+                    cleanTextForPDF(safeGet(r, 'tipoInteraccion')),
+                    cleanTextForPDF(safeGet(r, 'cliente')),
+                    cleanTextForPDF(safeGet(r, 'gerencia')),
+                    cleanTextForPDF(safeGet(r, 'zona')),
+                    cleanTextForPDF(safeGet(r, 'consultor')),
+                    cleanTextForPDF(safeGet(r, 'descripcion'))
                 ]);
 
                 doc.autoTable({
@@ -2909,7 +3481,7 @@
                 const dataStr = JSON.stringify(registrosOriginales, null, 2);
                 const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
                 
-                const exportFileDefaultName = `seguimiento_clientes_${new Date().toISOString().split('T')[0]}.json`;
+                const exportFileDefaultName = `seguimiento_clientes_${obtenerFechaHoyLocal()}.json`;
                 
                 const linkElement = document.createElement('a');
                 linkElement.setAttribute('href', dataUri);
@@ -2959,9 +3531,28 @@
             }
         };
 
+        // Hacer funciones disponibles globalmente
+        window.cargarConsultores = cargarConsultores;
+        window.sincronizarManual = sincronizarManual;
+
         console.log('🔧 Funciones de debug disponibles en window.debugDayton');
-        console.log('📋 Sistema de seguimiento de clientes Dayton con eliminación y papelera inicializado correctamente');
+        // Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./service-worker.js')
+                .then(registration => {
+                    console.log('✅ Service Worker registrado:', registration);
+                })
+                .catch(error => {
+                    console.error('❌ Error registrando Service Worker:', error);
+                });
+        }
+
+        console.log('📋 Sistema de seguimiento de clientes Dayton con autenticación inicializado correctamente');
         console.log('🆕 NUEVAS CARACTERÍSTICAS:');
+        console.log('   • Sistema de autenticación con roles');
+        console.log('   • Panel de administración de usuarios');
+        console.log('   • Sincronización con GitHub');
+        console.log('   • Dropdown de consultores dinámico desde usuarios del sistema');
         console.log('   • Eliminación individual con botón 🗑️ en cada registro');
         console.log('   • Eliminación masiva de registros filtrados');
         console.log('   • Papelera de reciclaje con funciones de restaurar/eliminar permanentemente');
@@ -2970,4 +3561,3 @@
     </script>
 </body>
 </html>
-
