@@ -114,19 +114,9 @@ class GitHubSync {
             const usuariosGitHub = await this.leerArchivo('usuarios.json');
 
             if (usuariosGitHub && usuariosGitHub.contenido) {
-                // Mezclar usuarios locales con los de GitHub
-                const usuariosLocales = window.sistemaAuth.obtenerUsuarios() || {};
-                const usuariosMezclados = { ...usuariosGitHub.contenido, ...usuariosLocales };
-
-                // Guardar localmente
-                localStorage.setItem('usuarios_sistema', JSON.stringify(usuariosMezclados));
-
-                // Guardar en GitHub si hay cambios
-                if (JSON.stringify(usuariosLocales) !== JSON.stringify(usuariosGitHub.contenido)) {
-                    await this.escribirArchivo('usuarios.json', usuariosMezclados, 'Sincronización de usuarios');
-                }
-
-                console.log('✅ Usuarios sincronizados');
+                // GitHub es la fuente de verdad - reemplazar usuarios locales
+                localStorage.setItem('usuarios_sistema', JSON.stringify(usuariosGitHub.contenido));
+                console.log('✅ Usuarios sincronizados desde GitHub');
                 return true;
             } else {
                 // Si no existe el archivo, crear con usuarios locales
@@ -137,6 +127,21 @@ class GitHubSync {
             }
         } catch (error) {
             console.error('❌ Error sincronizando usuarios:', error);
+            return false;
+        }
+    }
+
+    // Guardar cambios de usuarios en GitHub
+    async guardarUsuariosEnGitHub() {
+        if (!this.inicializar()) return false;
+
+        try {
+            const usuariosLocales = window.sistemaAuth.obtenerUsuarios() || {};
+            await this.escribirArchivo('usuarios.json', usuariosLocales, 'Actualización de usuarios');
+            console.log('✅ Usuarios guardados en GitHub');
+            return true;
+        } catch (error) {
+            console.error('❌ Error guardando usuarios en GitHub:', error);
             return false;
         }
     }
