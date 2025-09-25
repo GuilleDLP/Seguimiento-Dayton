@@ -578,6 +578,16 @@ class PanelAdministrador {
             </div>
 
             <div style="margin-top: 30px;">
+                <h3>🧹 Mantenimiento de Usuarios</h3>
+                <button class="btn-sync btn-secondary" onclick="limpiarUsuariosDuplicados()" style="background: #ff9800; color: white;">
+                    🧹 Limpiar Usuarios Duplicados
+                </button>
+                <button class="btn-sync btn-secondary" onclick="forzarSincronizacionDesdeGitHub()" style="background: #2196F3; color: white; margin-left: 10px;">
+                    ⬇️ Forzar Sincronización desde GitHub
+                </button>
+            </div>
+
+            <div style="margin-top: 30px;">
                 <h3>ℹ️ Información</h3>
                 <p style="color: #7f8c8d; line-height: 1.6;">
                     Esta aplicación comparte la base de datos de usuarios con "Reporte de Visitas" a través de GitHub.
@@ -733,7 +743,7 @@ window.cambiarTabAdmin = function(event, tabName) {
     document.getElementById(tabName).classList.add('active');
 };
 
-window.mostrarFormularioNuevoUsuario = function() {
+window.mostrarFormularioNuevoUsuario = async function() {
     const username = prompt('Ingrese el nombre de usuario:');
     if (!username) return;
 
@@ -757,6 +767,10 @@ window.mostrarFormularioNuevoUsuario = function() {
             rol
         });
 
+        // Sincronizar con GitHub
+        const sync = new GitHubSync();
+        await sync.guardarUsuariosEnGitHub();
+
         alert('✅ Usuario creado exitosamente');
         // Actualizar dropdowns de consultores
         if (typeof window.cargarConsultores === 'function') {
@@ -769,7 +783,7 @@ window.mostrarFormularioNuevoUsuario = function() {
     }
 };
 
-window.editarUsuario = function(username) {
+window.editarUsuario = async function(username) {
     const usuarios = window.sistemaAuth.obtenerUsuarios();
     const usuario = usuarios[username];
 
@@ -794,6 +808,10 @@ window.editarUsuario = function(username) {
 
         window.sistemaAuth.actualizarUsuario(username, actualizacion);
 
+        // Sincronizar con GitHub
+        const sync = new GitHubSync();
+        await sync.guardarUsuariosEnGitHub();
+
         alert('✅ Usuario actualizado exitosamente');
         // Actualizar dropdowns de consultores
         if (typeof window.cargarConsultores === 'function') {
@@ -806,7 +824,7 @@ window.editarUsuario = function(username) {
     }
 };
 
-window.toggleUsuarioEstado = function(username) {
+window.toggleUsuarioEstado = async function(username) {
     const usuarios = window.sistemaAuth.obtenerUsuarios();
     const usuario = usuarios[username];
     const nuevoEstado = !usuario.activo;
@@ -814,6 +832,11 @@ window.toggleUsuarioEstado = function(username) {
     if (confirm(`¿Está seguro de ${nuevoEstado ? 'activar' : 'desactivar'} al usuario ${usuario.nombre}?`)) {
         try {
             window.sistemaAuth.actualizarUsuario(username, { activo: nuevoEstado });
+
+            // Sincronizar con GitHub
+            const sync = new GitHubSync();
+            await sync.guardarUsuariosEnGitHub();
+
             alert(`✅ Usuario ${nuevoEstado ? 'activado' : 'desactivado'}`);
             // Actualizar dropdowns de consultores
             if (typeof window.cargarConsultores === 'function') {
@@ -827,13 +850,18 @@ window.toggleUsuarioEstado = function(username) {
     }
 };
 
-window.eliminarUsuario = function(username) {
+window.eliminarUsuario = async function(username) {
     const usuarios = window.sistemaAuth.obtenerUsuarios();
     const usuario = usuarios[username];
 
     if (confirm(`⚠️ ¿Está seguro de eliminar al usuario ${usuario.nombre}?\nEsta acción no se puede deshacer.`)) {
         try {
             window.sistemaAuth.eliminarUsuario(username);
+
+            // Sincronizar con GitHub inmediatamente
+            const sync = new GitHubSync();
+            await sync.guardarUsuariosEnGitHub();
+
             alert('✅ Usuario eliminado exitosamente');
             // Actualizar dropdowns de consultores
             if (typeof window.cargarConsultores === 'function') {
@@ -1327,3 +1355,69 @@ window.exportarReporteCSV = async function() {
 function safeGet(obj, key) {
     return obj && typeof obj === 'object' ? obj[key] || '' : '';
 }
+
+// ====================================================================
+// FUNCIONES DE MANTENIMIENTO DE USUARIOS
+// ====================================================================
+
+// Limpiar usuarios duplicados
+window.limpiarUsuariosDuplicados = async function() {
+    if (!confirm('⚠️ Esto limpiará usuarios duplicados basándose en los nombres de usuario únicos.\n¿Continuar?')) {
+        return;
+    }
+
+    try {
+        const usuarios = window.sistemaAuth.obtenerUsuarios();
+        const usuariosLimpios = {};
+        let eliminados = 0;
+
+        // Mantener solo una versión de cada usuario (por nombre de usuario)
+        Object.entries(usuarios).forEach(([username, usuario]) => {
+            if (!usuariosLimpios[username.toLowerCase()]) {
+                usuariosLimpios[username.toLowerCase()] = usuario;
+            } else {
+                eliminados++;
+                console.log(`Eliminando duplicado: ${username}`);
+            }
+        });
+
+        // Guardar usuarios limpios
+        localStorage.setItem('usuarios_sistema', JSON.stringify(usuariosLimpios));
+
+        // Sincronizar con GitHub
+        const sync = new GitHubSync();
+        await sync.guardarUsuariosEnGitHub();
+
+        alert(`✅ Limpieza completada.\n${eliminados} usuarios duplicados eliminados.`);
+
+        // Recargar panel
+        cerrarPanelAdmin();
+        abrirPanelAdmin();
+
+    } catch (error) {
+        console.error('Error limpiando usuarios:', error);
+        alert(`❌ Error: ${error.message}`);
+    }
+};
+
+// Forzar sincronización desde GitHub (GitHub como fuente de verdad)
+window.forzarSincronizacionDesdeGitHub = async function() {
+    if (!confirm('⚠️ Esto sobrescribirá todos los usuarios locales con los datos de GitHub.\n¿Continuar?')) {
+        return;
+    }
+
+    try {
+        const sync = new GitHubSync();
+        await sync.sincronizarUsuarios();
+
+        alert('✅ Sincronización forzada completada.\nUsuarios actualizados desde GitHub.');
+
+        // Recargar panel
+        cerrarPanelAdmin();
+        abrirPanelAdmin();
+
+    } catch (error) {
+        console.error('Error en sincronización forzada:', error);
+        alert(`❌ Error: ${error.message}`);
+    }
+};
