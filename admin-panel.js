@@ -982,13 +982,15 @@ window.cargarDatosReporte = async function() {
         const sync = new GitHubSync();
         if (sync.inicializar()) {
             // Cargar desde GitHub
-            await sync.cargarDatos();
-            reporteData.registros = await sync.obtenerRegistrosGitHub() || [];
-            reporteData.papelera = await sync.obtenerPapeleraGitHub() || [];
+            const seguimientoData = await sync.leerArchivo('seguimiento.json');
+            const papeleraData = await sync.leerArchivo('papelera_seguimiento.json');
+
+            reporteData.registros = seguimientoData?.contenido?.registros || [];
+            reporteData.papelera = papeleraData?.contenido?.registros || [];
         } else {
             // Cargar desde IndexedDB local
-            reporteData.registros = await obtenerRegistros() || [];
-            reporteData.papelera = await obtenerRegistrosPapelera() || [];
+            reporteData.registros = await sync.obtenerRegistrosLocales() || [];
+            reporteData.papelera = await sync.obtenerPapeleraLocal() || [];
         }
 
         reporteData.usuarios = window.sistemaAuth.obtenerUsuarios() || {};
