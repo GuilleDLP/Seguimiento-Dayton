@@ -1766,7 +1766,7 @@
 
         let activeTab = 'dashboard';
 
-        function cambiarTab(event, tabName) {
+        window.cambiarTab = function(event, tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
             
@@ -1781,7 +1781,7 @@
             injectExportButtons(tabName);
         }
 
-        function injectExportButtons(tabName) {
+        window.injectExportButtons = function(tabName) {
             const dashboardButtonsContainer = document.getElementById('dashboardExportButtons');
             const timelineButtonsContainer = document.getElementById('timelineExportButtons');
 
@@ -3442,12 +3442,12 @@
                     "Fecha", "Tipo", "Cliente", "Gerencia", "Zona", "Consultor", "Descripción"
                 ];
                 const rows = dataToExport.map(r => [
-                    safeGet(r, 'fecha')),
-                    safeGet(r, 'tipoInteraccion')),
-                    safeGet(r, 'cliente')),
-                    safeGet(r, 'gerencia')),
-                    safeGet(r, 'zona')),
-                    safeGet(r, 'consultor')),
+                    safeGet(r, 'fecha'),
+                    safeGet(r, 'tipoInteraccion'),
+                    safeGet(r, 'cliente'),
+                    safeGet(r, 'gerencia'),
+                    safeGet(r, 'zona'),
+                    safeGet(r, 'consultor'),
                     safeGet(r, 'descripcion')
                 ]);
 
