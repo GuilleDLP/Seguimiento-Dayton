@@ -69,12 +69,16 @@ class GitHubSync {
         if (!this.inicializar()) return false;
 
         try {
+            console.log(`🔄 Intentando escribir ${nombreArchivo} en GitHub...`);
+
             // Obtener SHA actual si existe
             const archivoActual = await this.leerArchivo(nombreArchivo);
             const sha = archivoActual ? archivoActual.sha : null;
+            console.log(`📄 SHA actual: ${sha ? 'Existe' : 'Nuevo archivo'}`);
 
             // Preparar contenido
             const contenidoBase64 = btoa(JSON.stringify(contenido, null, 2));
+            console.log(`📝 Contenido preparado (${contenidoBase64.length} chars)`);
 
             const body = {
                 message: `${mensaje} - ${new Date().toLocaleString('es-MX')}`,
@@ -85,20 +89,27 @@ class GitHubSync {
                 body.sha = sha;
             }
 
+            console.log(`📡 Enviando a: ${this.obtenerUrlArchivo(nombreArchivo)}`);
             const response = await fetch(this.obtenerUrlArchivo(nombreArchivo), {
                 method: 'PUT',
                 headers: this.obtenerHeaders(),
                 body: JSON.stringify(body)
             });
 
+            console.log(`📊 Respuesta HTTP: ${response.status} ${response.statusText}`);
+
             if (!response.ok) {
-                throw new Error(`Error al escribir ${nombreArchivo}: ${response.statusText}`);
+                const errorText = await response.text();
+                console.error(`❌ Error detallado:`, errorText);
+                throw new Error(`Error al escribir ${nombreArchivo}: ${response.status} ${response.statusText}`);
             }
 
-            console.log(`✅ ${nombreArchivo} guardado en GitHub`);
+            const responseData = await response.json();
+            console.log(`✅ ${nombreArchivo} guardado en GitHub`, responseData);
             return true;
         } catch (error) {
             console.error(`❌ Error escribiendo ${nombreArchivo} en GitHub:`, error);
+            console.error(`Stack trace:`, error.stack);
             return false;
         }
     }
