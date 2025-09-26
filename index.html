@@ -3253,12 +3253,12 @@
                 ]);
             }
 
-            const csvContent = "\uFEFF" + [
+            const csvContent = [
                 headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','),
                 ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
             ].join('\n');
 
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob([csvContent], { type: 'text/csv' });
             const today = obtenerFechaHoyLocal();
             const fileName = `dayton_${tabName}_${today}.csv`;
 
@@ -3488,7 +3488,7 @@
         function exportarDatos() {
             try {
                 const dataStr = JSON.stringify(registrosOriginales, null, 2);
-                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                const dataUri = 'data:application/json,'+ encodeURIComponent(dataStr);
                 
                 const exportFileDefaultName = `seguimiento_clientes_${obtenerFechaHoyLocal()}.json`;
                 
