@@ -1238,35 +1238,65 @@ window.exportarReportePDF = async function() {
 
     try {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+
+        // Configurar jsPDF con soporte mejorado para UTF-8
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4',
+            putOnlyUsedFonts: true,
+            floatPrecision: 16
+        });
+
+        // Configurar jsPDF para UTF-8
+        try {
+            doc.setFont("helvetica", "normal");
+        } catch (error) {
+            console.warn('No se pudo configurar fuente UTF-8');
+        }
+
+        // Función que preserva caracteres especiales del español
+        function prepareTextForPDF(text) {
+            if (!text) return '';
+            // Solo limpiar caracteres que realmente causan problemas en PDF
+            return String(text)
+                // Mantener todos los acentos y ñ del español
+                .replace(/[""]/g, '"')     // Comillas curvas → comillas normales
+                .replace(/['']/g, "'")     // Apostrofes curvos → apostrofe normal
+                .replace(/–/g, '-')        // Guión largo → guión normal
+                .replace(/—/g, '-')        // Guión em → guión normal
+                .replace(/…/g, '...')      // Puntos suspensivos → tres puntos
+                .replace(/\u00A0/g, ' ')   // Espacio no rompible → espacio normal
+                // MANTENER: á, é, í, ó, ú, ñ, Á, É, Í, Ó, Ú, Ñ, ü, Ü
+        }
 
         // Encabezado
         doc.setFontSize(18);
-        doc.text('REPORTE EJECUTIVO - UNIVERSITY OF DAYTON PUBLISHING', 14, 20);
+        doc.text(prepareTextForPDF('REPORTE EJECUTIVO - UNIVERSITY OF DAYTON PUBLISHING'), 14, 20);
         doc.setFontSize(12);
-        doc.text(`Período: ${document.getElementById('reportFechaInicio').value} - ${document.getElementById('reportFechaFin').value}`, 14, 30);
-        doc.text(`Generado: ${new Date().toLocaleDateString('es-MX')}`, 14, 38);
+        doc.text(prepareTextForPDF(`Período: ${document.getElementById('reportFechaInicio').value} - ${document.getElementById('reportFechaFin').value}`), 14, 30);
+        doc.text(prepareTextForPDF(`Generado: ${new Date().toLocaleDateString('es-MX')}`), 14, 38);
 
         let yPos = 50;
 
         // Resumen ejecutivo
         doc.setFontSize(14);
-        doc.text('RESUMEN EJECUTIVO', 14, yPos);
+        doc.text(prepareTextForPDF('RESUMEN EJECUTIVO'), 14, yPos);
         yPos += 10;
 
         doc.setFontSize(10);
-        doc.text(`Total de Interacciones: ${stats.totalRegistros}`, 14, yPos);
+        doc.text(prepareTextForPDF(`Total de Interacciones: ${stats.totalRegistros}`), 14, yPos);
         yPos += 6;
-        doc.text(`Clientes Únicos: ${stats.clientesUnicos}`, 14, yPos);
+        doc.text(prepareTextForPDF(`Clientes Únicos: ${stats.clientesUnicos}`), 14, yPos);
         yPos += 6;
-        doc.text(`Consultores Activos: ${stats.consultoresActivos}`, 14, yPos);
+        doc.text(prepareTextForPDF(`Consultores Activos: ${stats.consultoresActivos}`), 14, yPos);
         yPos += 6;
-        doc.text(`Gerencias Cubiertas: ${stats.gerenciasActivas}`, 14, yPos);
+        doc.text(prepareTextForPDF(`Gerencias Cubiertas: ${stats.gerenciasActivas}`), 14, yPos);
         yPos += 15;
 
         // Actividad por consultor
         doc.setFontSize(12);
-        doc.text('ACTIVIDAD POR CONSULTOR', 14, yPos);
+        doc.text(prepareTextForPDF('ACTIVIDAD POR CONSULTOR'), 14, yPos);
         yPos += 8;
 
         doc.setFontSize(10);
@@ -1276,7 +1306,7 @@ window.exportarReportePDF = async function() {
                 const usuario = reporteData.usuarios[consultor];
                 const nombre = usuario ? usuario.nombre : consultor;
                 const porcentaje = ((count / stats.totalRegistros) * 100).toFixed(1);
-                doc.text(`${nombre}: ${count} registros (${porcentaje}%)`, 14, yPos);
+                doc.text(prepareTextForPDF(`${nombre}: ${count} registros (${porcentaje}%)`), 14, yPos);
                 yPos += 6;
             });
 
@@ -1304,6 +1334,14 @@ window.exportarReporteExcel = async function() {
 
     try {
         const wb = XLSX.utils.book_new();
+
+        // Configurar propiedades del workbook para UTF-8
+        wb.Props = {
+            Title: "Reporte University of Dayton Publishing",
+            Subject: "Reporte de Seguimiento de Clientes",
+            Author: "Sistema de Seguimiento UDP",
+            CreatedDate: new Date()
+        };
 
         // Hoja 1: Resumen Ejecutivo
         const resumenData = [
@@ -1347,8 +1385,22 @@ window.exportarReporteExcel = async function() {
         const ws2 = XLSX.utils.aoa_to_sheet([headers, ...detailedData]);
         XLSX.utils.book_append_sheet(wb, ws2, 'Registros Detallados');
 
+        // Configurar opciones de escritura para UTF-8
+        const wopts = {
+            bookType: 'xlsx',
+            bookSST: false,
+            type: 'binary',
+            cellStyles: true,
+            Props: {
+                Title: "Reporte Detallado UDP",
+                Subject: "Seguimiento de Clientes"
+            }
+        };
+
         const fileName = `reporte_detallado_${new Date().toISOString().split('T')[0]}.xlsx`;
-        XLSX.writeFile(wb, fileName);
+
+        // Usar writeFile con opciones específicas para UTF-8
+        XLSX.writeFile(wb, fileName, wopts);
 
         alert(`✅ Reporte Excel exportado: ${fileName}`);
 
