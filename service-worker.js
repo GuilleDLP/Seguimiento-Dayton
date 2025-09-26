@@ -1,10 +1,11 @@
-const CACHE_NAME = 'seguimiento-dayton-v3';
+const CACHE_NAME = 'seguimiento-dayton-v10';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
   './icono-192.png',
   './icono-512.png',
+  './db-config.js',
   './auth.js',
   './github-config.js',
   './github-sync.js',
