@@ -984,14 +984,47 @@ window.cargarDatosReporte = async function() {
         console.log('Sync creado:', sync);
 
         if (sync.inicializar()) {
-            console.log('✅ GitHub configurado, cargando desde GitHub...');
+            console.log('✅ GitHub configurado, intentando cargar desde GitHub...');
             // Cargar desde GitHub
             const seguimientoData = await sync.leerArchivo('seguimiento.json');
             const papeleraData = await sync.leerArchivo('papelera_seguimiento.json');
 
-            reporteData.registros = seguimientoData?.contenido?.registros || [];
-            reporteData.papelera = papeleraData?.contenido?.registros || [];
-            console.log('Datos de GitHub cargados:', reporteData.registros.length, 'registros');
+            if (seguimientoData || papeleraData) {
+                // Si al menos uno existe, usar datos de GitHub
+                reporteData.registros = seguimientoData?.contenido?.registros || [];
+                reporteData.papelera = papeleraData?.contenido?.registros || [];
+                console.log('Datos de GitHub cargados:', reporteData.registros.length, 'registros');
+            } else {
+                // Si no existen archivos en GitHub, cargar locales y crear archivos en GitHub
+                console.log('⚠️ Archivos no encontrados en GitHub, usando datos locales...');
+                reporteData.registros = await sync.obtenerRegistrosLocales() || [];
+                reporteData.papelera = await sync.obtenerPapeleraLocal() || [];
+
+                // Crear archivos iniciales en GitHub si no existen
+                if (reporteData.registros.length > 0 || !seguimientoData) {
+                    const datosGuardar = {
+                        registros: reporteData.registros,
+                        ultimaActualizacion: new Date().toISOString(),
+                        totalRegistros: reporteData.registros.length,
+                        metadata: {
+                            aplicacion: 'Seguimiento de Clientes',
+                            version: '2.0'
+                        }
+                    };
+                    await sync.escribirArchivo('seguimiento.json', datosGuardar, 'Creación inicial de seguimiento');
+                }
+
+                if (reporteData.papelera.length > 0 || !papeleraData) {
+                    const papeleraGuardar = {
+                        registros: reporteData.papelera,
+                        ultimaActualizacion: new Date().toISOString(),
+                        totalRegistros: reporteData.papelera.length
+                    };
+                    await sync.escribirArchivo('papelera_seguimiento.json', papeleraGuardar, 'Creación inicial de papelera');
+                }
+
+                console.log('Datos locales cargados y sincronizados:', reporteData.registros.length, 'registros');
+            }
         } else {
             console.log('⚠️ GitHub no configurado, cargando desde IndexedDB local...');
             // Cargar desde IndexedDB local
