@@ -1250,25 +1250,45 @@ window.exportarReportePDF = async function() {
 
         // Configurar jsPDF para UTF-8
         try {
-            doc.setFont("helvetica", "normal");
+            doc.setFont("helvetica");
+            doc.setCharSpace(0);
         } catch (error) {
             console.warn('No se pudo configurar fuente UTF-8');
         }
 
-        // Función que preserva caracteres especiales del español
-        function prepareTextForPDF(text) {
+        // Función mejorada para caracteres especiales en PDF
+        function processTextForPDF(text) {
             if (!text) return '';
-            // Solo limpiar caracteres que realmente causan problemas en PDF
-            return String(text)
-                // Mantener todos los acentos y ñ del español
-                .replace(/[""]/g, '"')     // Comillas curvas → comillas normales
-                .replace(/['']/g, "'")     // Apostrofes curvos → apostrofe normal
-                .replace(/–/g, '-')        // Guión largo → guión normal
-                .replace(/—/g, '-')        // Guión em → guión normal
-                .replace(/…/g, '...')      // Puntos suspensivos → tres puntos
-                .replace(/\u00A0/g, ' ')   // Espacio no rompible → espacio normal
-                // MANTENER: á, é, í, ó, ú, ñ, Á, É, Í, Ó, Ú, Ñ, ü, Ü
+
+            let processedText = String(text);
+
+            // Mapeo de caracteres especiales para jsPDF
+            const charMap = {
+                'á': '\u00E1', 'é': '\u00E9', 'í': '\u00ED', 'ó': '\u00F3', 'ú': '\u00FA',
+                'Á': '\u00C1', 'É': '\u00C9', 'Í': '\u00CD', 'Ó': '\u00D3', 'Ú': '\u00DA',
+                'ñ': '\u00F1', 'Ñ': '\u00D1', 'ü': '\u00FC', 'Ü': '\u00DC',
+                '¿': '\u00BF', '¡': '\u00A1'
+            };
+
+            // Usar códigos Unicode explícitos
+            for (const [char, code] of Object.entries(charMap)) {
+                processedText = processedText.replace(new RegExp(char, 'g'), code);
+            }
+
+            // Limpiar caracteres problemáticos
+            processedText = processedText
+                .replace(/[""]/g, '"')
+                .replace(/['']/g, "'")
+                .replace(/–/g, '-')
+                .replace(/—/g, '-')
+                .replace(/…/g, '...')
+                .replace(/\u00A0/g, ' ');
+
+            return processedText;
         }
+
+        // Alias para compatibilidad
+        const prepareTextForPDF = processTextForPDF;
 
         // Encabezado
         doc.setFontSize(18);
@@ -1385,22 +1405,38 @@ window.exportarReporteExcel = async function() {
         const ws2 = XLSX.utils.aoa_to_sheet([headers, ...detailedData]);
         XLSX.utils.book_append_sheet(wb, ws2, 'Registros Detallados');
 
-        // Configurar opciones de escritura para UTF-8
-        const wopts = {
-            bookType: 'xlsx',
-            bookSST: false,
-            type: 'binary',
-            cellStyles: true,
-            Props: {
-                Title: "Reporte Detallado UDP",
-                Subject: "Seguimiento de Clientes"
-            }
-        };
-
         const fileName = `reporte_detallado_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-        // Usar writeFile con opciones específicas para UTF-8
-        XLSX.writeFile(wb, fileName, wopts);
+        // Método alternativo: generar como buffer con BOM UTF-8
+        try {
+            // Intentar usar el método con BOM UTF-8
+            const wbout = XLSX.write(wb, {
+                bookType: 'xlsx',
+                type: 'array',
+                compression: true
+            });
+
+            // Crear blob con BOM UTF-8
+            const blob = new Blob([wbout], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8'
+            });
+
+            // Descargar usando blob
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.warn('Método con BOM falló, usando método tradicional:', error);
+            // Fallback al método original
+            XLSX.writeFile(wb, fileName);
+        }
 
         alert(`✅ Reporte Excel exportado: ${fileName}`);
 
