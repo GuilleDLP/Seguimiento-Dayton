@@ -166,22 +166,77 @@ class GitHubSync {
 
             // Obtener registros locales de IndexedDB
             const registrosLocales = await this.obtenerRegistrosLocales();
+            console.log(`📊 Registros locales encontrados: ${registrosLocales.length}`);
 
             // Leer datos de GitHub
             const seguimientoGitHub = await this.leerArchivo('seguimiento.json');
 
-            let registrosMezclados = registrosLocales;
+            let registrosMezclados = [...registrosLocales]; // Copia de los registros locales
 
             if (seguimientoGitHub && seguimientoGitHub.contenido) {
-                // Mezclar registros (evitar duplicados por ID)
+                console.log('✅ Archivo seguimiento.json encontrado en GitHub, mezclando datos...');
+                // Mezclar registros con lógica de concurrencia mejorada
                 const registrosGitHub = seguimientoGitHub.contenido.registros || [];
-                const idsLocales = new Set(registrosLocales.map(r => r.id));
+                console.log(`📊 Registros en GitHub: ${registrosGitHub.length}`);
 
-                registrosGitHub.forEach(registro => {
-                    if (!idsLocales.has(registro.id)) {
-                        registrosMezclados.push(registro);
+                // Crear maps para facilitar la comparación
+                const localesMap = new Map(registrosLocales.map(r => [r.id, r]));
+                const githubMap = new Map(registrosGitHub.map(r => [r.id, r]));
+
+                // Agregar todos los registros locales primero
+                registrosMezclados = [...registrosLocales];
+
+                // Inicializar contadores de conflictos
+                let conflictosDetectados = 0;
+                this.conflictosResueltos = this.conflictosResueltos || 0;
+
+                // Procesar registros de GitHub
+                registrosGitHub.forEach(registroGitHub => {
+                    const registroLocal = localesMap.get(registroGitHub.id);
+
+                    if (!registroLocal) {
+                        // Registro solo existe en GitHub, agregarlo
+                        registrosMezclados.push(registroGitHub);
+                        console.log(`➕ Agregando registro solo de GitHub: ${registroGitHub.id}`);
+                    } else {
+                        // Registro existe en ambos lados, verificar si hay conflicto
+                        const fechaLocal = new Date(registroLocal.fechaRegistro || registroLocal.ultimaModificacion || '1970-01-01');
+                        const fechaGitHub = new Date(registroGitHub.fechaRegistro || registroGitHub.ultimaModificacion || '1970-01-01');
+
+                        // Verificar si hay diferencias en el contenido
+                        const hayDiferencias = JSON.stringify(registroLocal) !== JSON.stringify(registroGitHub);
+
+                        if (hayDiferencias && Math.abs(fechaLocal - fechaGitHub) < 60000) {
+                            // Conflicto detectado: cambios concurrentes en menos de 1 minuto
+                            conflictosDetectados++;
+                            this.conflictosResueltos++;
+                            this.ultimoConflicto = {
+                                registroId: registroGitHub.id,
+                                fechaDeteccion: new Date().toISOString(),
+                                usuarioLocal: registroLocal.creadoPor,
+                                usuarioGitHub: registroGitHub.creadoPor
+                            };
+                            console.warn(`⚠️ Conflicto detectado en registro ${registroGitHub.id}: cambios concurrentes`);
+                        }
+
+                        if (fechaGitHub > fechaLocal) {
+                            // Versión de GitHub es más reciente, reemplazar
+                            const index = registrosMezclados.findIndex(r => r.id === registroGitHub.id);
+                            if (index !== -1) {
+                                registrosMezclados[index] = registroGitHub;
+                                console.log(`🔄 Actualizando registro con versión de GitHub (más reciente): ${registroGitHub.id}`);
+                            }
+                        } else {
+                            console.log(`📝 Manteniendo versión local de registro: ${registroLocal.id}`);
+                        }
                     }
                 });
+
+                if (conflictosDetectados > 0) {
+                    console.warn(`⚠️ Se detectaron y resolvieron ${conflictosDetectados} conflictos de concurrencia`);
+                }
+            } else {
+                console.log('📝 Archivo seguimiento.json no existe en GitHub, será creado...');
             }
 
             // Ordenar por fecha
@@ -194,22 +249,37 @@ class GitHubSync {
                 totalRegistros: registrosMezclados.length,
                 metadata: {
                     aplicacion: 'Seguimiento de Clientes',
-                    version: '2.0'
+                    version: '2.0',
+                    ultimaSincronizacion: new Date().toISOString()
                 }
             };
 
-            // Guardar en GitHub
-            await this.escribirArchivo('seguimiento.json', datosGuardar, 'Sincronización de seguimiento');
+            // SIEMPRE guardar en GitHub (crear o actualizar)
+            console.log(`💾 Guardando ${registrosMezclados.length} registros en GitHub...`);
 
-            // Actualizar IndexedDB local con los datos mezclados
-            await this.actualizarRegistrosLocales(registrosMezclados);
+            // Agregar información de sincronización
+            datosGuardar.metadata.conflictosResueltos = this.conflictosResueltos || 0;
+            datosGuardar.metadata.ultimoConflicto = this.ultimoConflicto || null;
+
+            const exitoEscritura = await this.escribirArchivo('seguimiento.json', datosGuardar, 'Sincronización de seguimiento');
+
+            if (!exitoEscritura) {
+                throw new Error('No se pudo escribir el archivo en GitHub');
+            }
+
+            // Actualizar IndexedDB local con los datos mezclados solo si hay nuevos datos
+            if (registrosMezclados.length !== registrosLocales.length) {
+                console.log('🔄 Actualizando IndexedDB local con datos mezclados...');
+                await this.actualizarRegistrosLocales(registrosMezclados);
+            }
 
             this.ultimaSincronizacion = new Date().toISOString();
-            console.log(`✅ Seguimiento sincronizado: ${registrosMezclados.length} registros`);
+            console.log(`✅ Seguimiento sincronizado exitosamente: ${registrosMezclados.length} registros`);
 
             return true;
         } catch (error) {
             console.error('❌ Error sincronizando seguimiento:', error);
+            console.error('Stack trace:', error.stack);
             return false;
         }
     }
@@ -322,45 +392,67 @@ class GitHubSync {
         if (!this.inicializar()) return false;
 
         try {
-            console.log('🔄 Sincronizando papelera con GitHub...');
+            console.log('🗑️ Sincronizando papelera con GitHub...');
 
             // Obtener papelera local
             const papeleraLocal = await this.obtenerPapeleraLocal();
+            console.log(`📊 Registros en papelera local: ${papeleraLocal.length}`);
 
             // Leer papelera de GitHub
             const papeleraGitHub = await this.leerArchivo('papelera_seguimiento.json');
 
-            let papeleraMezclada = papeleraLocal;
+            let papeleraMezclada = [...papeleraLocal]; // Copia de la papelera local
 
             if (papeleraGitHub && papeleraGitHub.contenido) {
+                console.log('✅ Archivo papelera_seguimiento.json encontrado en GitHub, mezclando datos...');
                 // Mezclar registros de papelera
                 const registrosGitHub = papeleraGitHub.contenido.registros || [];
-                const idsLocales = new Set(papeleraLocal.map(r => r.trashId));
+                console.log(`📊 Registros en papelera GitHub: ${registrosGitHub.length}`);
+
+                const idsLocales = new Set(papeleraLocal.map(r => r.trashId || r.id));
 
                 registrosGitHub.forEach(registro => {
-                    if (!idsLocales.has(registro.trashId)) {
+                    const registroId = registro.trashId || registro.id;
+                    if (!idsLocales.has(registroId)) {
                         papeleraMezclada.push(registro);
+                        console.log(`➕ Agregando de papelera GitHub: ${registroId}`);
                     }
                 });
+            } else {
+                console.log('📝 Archivo papelera_seguimiento.json no existe en GitHub, será creado...');
             }
 
             // Preparar datos para guardar
             const datosGuardar = {
                 registros: papeleraMezclada,
                 ultimaActualizacion: new Date().toISOString(),
-                totalRegistros: papeleraMezclada.length
+                totalRegistros: papeleraMezclada.length,
+                metadata: {
+                    aplicacion: 'Seguimiento de Clientes',
+                    version: '2.0',
+                    ultimaSincronizacion: new Date().toISOString()
+                }
             };
 
-            // Guardar en GitHub
-            await this.escribirArchivo('papelera_seguimiento.json', datosGuardar, 'Sincronización de papelera');
+            // SIEMPRE guardar en GitHub (crear o actualizar)
+            console.log(`💾 Guardando ${papeleraMezclada.length} registros de papelera en GitHub...`);
+            const exitoEscritura = await this.escribirArchivo('papelera_seguimiento.json', datosGuardar, 'Sincronización de papelera');
 
-            // Actualizar papelera local
-            await this.actualizarPapeleraLocal(papeleraMezclada);
+            if (!exitoEscritura) {
+                throw new Error('No se pudo escribir papelera en GitHub');
+            }
 
-            console.log(`✅ Papelera sincronizada: ${papeleraMezclada.length} registros`);
+            // Actualizar papelera local solo si hay nuevos datos
+            if (papeleraMezclada.length !== papeleraLocal.length) {
+                console.log('🔄 Actualizando papelera local con datos mezclados...');
+                await this.actualizarPapeleraLocal(papeleraMezclada);
+            }
+
+            console.log(`✅ Papelera sincronizada exitosamente: ${papeleraMezclada.length} registros`);
             return true;
         } catch (error) {
             console.error('❌ Error sincronizando papelera:', error);
+            console.error('Stack trace:', error.stack);
             return false;
         }
     }
