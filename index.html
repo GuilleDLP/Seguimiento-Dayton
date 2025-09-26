@@ -3283,34 +3283,85 @@
             const today = obtenerFechaHoyLocal();
             let fileName = `dayton_${tabName}_${today}.pdf`;
 
-            // Configurar codificación UTF-8 para jsPDF
-            // Usar fuente que soporte caracteres especiales
+            // Intentar configurar fuente con soporte UTF-8
             try {
-                // Intentar usar una fuente con soporte UTF-8
-                doc.setFont("helvetica", "normal");
-                // Configurar el documento para UTF-8
-                doc.internal.write('BT');
-                doc.internal.write('/F1 12 Tf');
-                doc.internal.write('ET');
+                // Configurar documento para UTF-8
+                doc.setFont("helvetica");
+                doc.setCharSpace(0);
+                doc.setFontSize(12);
             } catch (error) {
-                console.warn('No se pudo configurar fuente UTF-8, usando configuración básica');
+                console.warn('Error configurando fuente:', error);
             }
 
-            // Función mejorada que preserva caracteres especiales del español
-            function prepareTextForPDF(text) {
+            // Nueva estrategia: usar códigos de caracteres específicos para caracteres especiales
+            function processTextForPDF(text) {
                 if (!text) return '';
-                // Solo limpiar caracteres que realmente causan problemas en PDF
-                return String(text)
-                    // Mantener todos los acentos y ñ del español
-                    // Solo reemplazar caracteres que jsPDF no puede manejar
-                    .replace(/[""]/g, '"')     // Comillas curvas → comillas normales
-                    .replace(/['']/g, "'")     // Apostrofes curvos → apostrofe normal
-                    .replace(/–/g, '-')        // Guión largo → guión normal
-                    .replace(/—/g, '-')        // Guión em → guión normal
-                    .replace(/…/g, '...')      // Puntos suspensivos → tres puntos
-                    .replace(/\u00A0/g, ' ')   // Espacio no rompible → espacio normal
-                    // MANTENER: á, é, í, ó, ú, ñ, Á, É, Í, Ó, Ú, Ñ, ü, Ü
+
+                // Convertir a string y procesar caracteres especiales
+                let processedText = String(text);
+
+                // Mapeo de caracteres especiales para jsPDF
+                const charMap = {
+                    'á': '\u00E1', 'é': '\u00E9', 'í': '\u00ED', 'ó': '\u00F3', 'ú': '\u00FA',
+                    'Á': '\u00C1', 'É': '\u00C9', 'Í': '\u00CD', 'Ó': '\u00D3', 'Ú': '\u00DA',
+                    'ñ': '\u00F1', 'Ñ': '\u00D1', 'ü': '\u00FC', 'Ü': '\u00DC',
+                    '¿': '\u00BF', '¡': '\u00A1'
+                };
+
+                // Intentar usar códigos Unicode explícitos
+                for (const [char, code] of Object.entries(charMap)) {
+                    processedText = processedText.replace(new RegExp(char, 'g'), code);
+                }
+
+                // Limpiar solo caracteres realmente problemáticos
+                processedText = processedText
+                    .replace(/[""]/g, '"')
+                    .replace(/['']/g, "'")
+                    .replace(/–/g, '-')
+                    .replace(/—/g, '-')
+                    .replace(/…/g, '...')
+                    .replace(/\u00A0/g, ' ');
+
+                return processedText;
             }
+
+            // Método de fallback: crear PDF desde HTML si los caracteres fallan
+            function createPDFFromHTML(htmlContent, fileName) {
+                // Crear un elemento temporal con el contenido
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+                tempDiv.style.cssText = `
+                    position: absolute;
+                    left: -9999px;
+                    top: -9999px;
+                    width: 210mm;
+                    padding: 20px;
+                    font-family: Arial, sans-serif;
+                    font-size: 12px;
+                    line-height: 1.4;
+                    color: #333;
+                `;
+                document.body.appendChild(tempDiv);
+
+                // Usar html2canvas si está disponible (como fallback futuro)
+                if (window.html2canvas) {
+                    return html2canvas(tempDiv).then(canvas => {
+                        document.body.removeChild(tempDiv);
+                        const imgData = canvas.toDataURL('image/png');
+                        const pdf = new jsPDF();
+                        const imgWidth = 210;
+                        const imgHeight = canvas.height * imgWidth / canvas.width;
+                        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                        pdf.save(fileName);
+                    });
+                }
+
+                document.body.removeChild(tempDiv);
+                return Promise.reject('html2canvas no disponible');
+            }
+
+            // Alias para compatibilidad
+            const prepareTextForPDF = processTextForPDF;
 
             doc.setFontSize(18);
             doc.setTextColor(44, 62, 80);
