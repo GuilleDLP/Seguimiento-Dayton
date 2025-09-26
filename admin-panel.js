@@ -1391,12 +1391,12 @@ window.exportarReporteCSV = async function() {
             safeGet(r, 'creadoPor')
         ]);
 
-        const csvContent = "\\uFEFF" + [
+        const csvContent = [
             headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','),
             ...rows.map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(','))
-        ].join('\\n');
+        ].join('\n');
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob([csvContent], { type: 'text/csv' });
         const fileName = `reporte_analitico_${new Date().toISOString().split('T')[0]}.csv`;
 
         const link = document.createElement('a');
