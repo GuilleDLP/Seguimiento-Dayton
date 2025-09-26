@@ -978,19 +978,26 @@ window.actualizarFechasReporte = function() {
 window.cargarDatosReporte = async function() {
     try {
         console.log('📊 Cargando datos para reporte...');
+        console.log('GitHubSync disponible:', typeof GitHubSync);
 
         const sync = new GitHubSync();
+        console.log('Sync creado:', sync);
+
         if (sync.inicializar()) {
+            console.log('✅ GitHub configurado, cargando desde GitHub...');
             // Cargar desde GitHub
             const seguimientoData = await sync.leerArchivo('seguimiento.json');
             const papeleraData = await sync.leerArchivo('papelera_seguimiento.json');
 
             reporteData.registros = seguimientoData?.contenido?.registros || [];
             reporteData.papelera = papeleraData?.contenido?.registros || [];
+            console.log('Datos de GitHub cargados:', reporteData.registros.length, 'registros');
         } else {
+            console.log('⚠️ GitHub no configurado, cargando desde IndexedDB local...');
             // Cargar desde IndexedDB local
             reporteData.registros = await sync.obtenerRegistrosLocales() || [];
             reporteData.papelera = await sync.obtenerPapeleraLocal() || [];
+            console.log('Datos locales cargados:', reporteData.registros.length, 'registros');
         }
 
         reporteData.usuarios = window.sistemaAuth.obtenerUsuarios() || {};
@@ -1010,7 +1017,9 @@ window.cargarDatosReporte = async function() {
 
     } catch (error) {
         console.error('❌ Error cargando datos para reporte:', error);
-        alert('Error cargando datos. Verifique la conexión y configuración de GitHub.');
+        console.error('Stack trace:', error.stack);
+        console.error('Mensaje del error:', error.message);
+        alert(`Error cargando datos: ${error.message}`);
     }
 };
 
