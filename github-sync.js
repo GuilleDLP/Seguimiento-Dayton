@@ -56,7 +56,7 @@ class GitHubSync {
             }
 
             const data = await response.json();
-            const contenido = atob(data.content);
+            const contenido = decodeURIComponent(escape(atob(data.content)));
             return {
                 contenido: JSON.parse(contenido),
                 sha: data.sha
@@ -79,8 +79,9 @@ class GitHubSync {
             const sha = archivoActual ? archivoActual.sha : null;
             console.log(`📄 SHA actual: ${sha ? 'Existe' : 'Nuevo archivo'}`);
 
-            // Preparar contenido
-            const contenidoBase64 = btoa(JSON.stringify(contenido, null, 2));
+            // Preparar contenido con soporte UTF-8 correcto
+            const jsonString = JSON.stringify(contenido, null, 2);
+            const contenidoBase64 = btoa(unescape(encodeURIComponent(jsonString)));
             console.log(`📝 Contenido preparado (${contenidoBase64.length} chars)`);
 
             const body = {
