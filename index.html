@@ -1947,6 +1947,8 @@
             }
 
             registro.fechaRegistro = obtenerFechaHoyLocal();
+            registro.ultimaModificacion = new Date().toISOString();
+            registro.creadoPor = sistemaAuth.obtenerUsuarioActual()?.nombre || 'Usuario';
 
             try {
                 const id = await addRegistroToDB(registro);
@@ -1954,6 +1956,21 @@
                 mostrarMensaje('✅ Registro guardado exitosamente');
                 limpiarFormulario();
                 await cargarDatosYActualizarUI();
+
+                // Sincronización inmediata después de guardar
+                console.log('🔄 Iniciando sincronización inmediata después de guardar...');
+                try {
+                    const sync = new GitHubSync();
+                    const resultadoSync = await sync.sincronizacionCompleta();
+                    if (resultadoSync) {
+                        console.log('✅ Registro sincronizado con GitHub exitosamente');
+                    } else {
+                        console.log('⚠️ Sincronización falló, se reintentará automáticamente');
+                    }
+                } catch (syncError) {
+                    console.error('❌ Error en sincronización inmediata:', syncError);
+                    // No mostrar error al usuario, la sincronización automática lo reintentará
+                }
             } catch (error) {
                 console.error("❌ Error al guardar:", error);
                 mostrarMensaje('🔴 Hubo un error al guardar el registro. Se guardó en memoria temporal.', 'warning');
