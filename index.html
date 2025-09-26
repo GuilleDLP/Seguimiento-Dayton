@@ -3162,15 +3162,15 @@
 
                 const detailedHeaders = [
                     "Fecha", "Tipo de Interacción", "Cliente", "Gerencia", "Zona Comercial", "Consultor/a", "Descripción"
-                ].map(header => prepareTextForPDF(header));
+                ];
                 const detailedData = dataToExport.map(r => [
-                    prepareTextForPDF(safeGet(r, 'fecha')),
-                    prepareTextForPDF(safeGet(r, 'tipoInteraccion')),
-                    prepareTextForPDF(safeGet(r, 'cliente')),
-                    prepareTextForPDF(safeGet(r, 'gerencia')),
-                    prepareTextForPDF(safeGet(r, 'zona')),
-                    prepareTextForPDF(safeGet(r, 'consultor')),
-                    prepareTextForPDF(safeGet(r, 'descripcion'))
+                    safeGet(r, 'fecha')),
+                    safeGet(r, 'tipoInteraccion')),
+                    safeGet(r, 'cliente')),
+                    safeGet(r, 'gerencia')),
+                    safeGet(r, 'zona')),
+                    safeGet(r, 'consultor')),
+                    safeGet(r, 'descripcion')
                 ]);
                 const ws3 = XLSX.utils.aoa_to_sheet([detailedHeaders, ...detailedData]);
                 XLSX.utils.book_append_sheet(wb, ws3, "Registros Detallados");
@@ -3178,7 +3178,7 @@
             } else if (tabName === 'timeline') {
                 const headers = [
                     "Fecha", "Tipo de Interacción", "Cliente", "Gerencia", "Zona Comercial", "Consultor/a", "Descripción"
-                ].map(header => prepareTextForPDF(header));
+                ];
                 const data = dataToExport.map(r => [
                     safeGet(r, 'fecha'),
                     safeGet(r, 'tipoInteraccion'),
@@ -3192,11 +3192,7 @@
                 XLSX.utils.book_append_sheet(wb, ws, "Registros Timeline");
             }
 
-            XLSX.writeFile(wb, fileName, {
-                bookType: 'xlsx',
-                type: 'binary',
-                compression: true
-            });
+            XLSX.writeFile(wb, fileName);
             mostrarMensaje(`✅ Archivo ${fileName} generado exitosamente.`, 'success');
             console.log('✅ XLSX exportado');
         }
@@ -3271,104 +3267,18 @@
             console.log(`📤 Iniciando exportación PDF para: ${tabName}`);
             const { jsPDF } = window.jspdf;
 
-            // Configurar jsPDF con soporte mejorado para UTF-8
-            const doc = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4',
-                putOnlyUsedFonts: true,
-                floatPrecision: 16
-            });
+            const doc = new jsPDF();
 
             const today = obtenerFechaHoyLocal();
             let fileName = `dayton_${tabName}_${today}.pdf`;
 
-            // Intentar configurar fuente con soporte UTF-8
-            try {
-                // Configurar documento para UTF-8
-                doc.setFont("helvetica");
-                doc.setCharSpace(0);
-                doc.setFontSize(12);
-            } catch (error) {
-                console.warn('Error configurando fuente:', error);
-            }
-
-            // Nueva estrategia: usar códigos de caracteres específicos para caracteres especiales
-            function processTextForPDF(text) {
-                if (!text) return '';
-
-                // Convertir a string y procesar caracteres especiales
-                let processedText = String(text);
-
-                // Mapeo de caracteres especiales para jsPDF
-                const charMap = {
-                    'á': '\u00E1', 'é': '\u00E9', 'í': '\u00ED', 'ó': '\u00F3', 'ú': '\u00FA',
-                    'Á': '\u00C1', 'É': '\u00C9', 'Í': '\u00CD', 'Ó': '\u00D3', 'Ú': '\u00DA',
-                    'ñ': '\u00F1', 'Ñ': '\u00D1', 'ü': '\u00FC', 'Ü': '\u00DC',
-                    '¿': '\u00BF', '¡': '\u00A1'
-                };
-
-                // Intentar usar códigos Unicode explícitos
-                for (const [char, code] of Object.entries(charMap)) {
-                    processedText = processedText.replace(new RegExp(char, 'g'), code);
-                }
-
-                // Limpiar solo caracteres realmente problemáticos
-                processedText = processedText
-                    .replace(/[""]/g, '"')
-                    .replace(/['']/g, "'")
-                    .replace(/–/g, '-')
-                    .replace(/—/g, '-')
-                    .replace(/…/g, '...')
-                    .replace(/\u00A0/g, ' ');
-
-                return processedText;
-            }
-
-            // Método de fallback: crear PDF desde HTML si los caracteres fallan
-            function createPDFFromHTML(htmlContent, fileName) {
-                // Crear un elemento temporal con el contenido
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = htmlContent;
-                tempDiv.style.cssText = `
-                    position: absolute;
-                    left: -9999px;
-                    top: -9999px;
-                    width: 210mm;
-                    padding: 20px;
-                    font-family: Arial, sans-serif;
-                    font-size: 12px;
-                    line-height: 1.4;
-                    color: #333;
-                `;
-                document.body.appendChild(tempDiv);
-
-                // Usar html2canvas si está disponible (como fallback futuro)
-                if (window.html2canvas) {
-                    return html2canvas(tempDiv).then(canvas => {
-                        document.body.removeChild(tempDiv);
-                        const imgData = canvas.toDataURL('image/png');
-                        const pdf = new jsPDF();
-                        const imgWidth = 210;
-                        const imgHeight = canvas.height * imgWidth / canvas.width;
-                        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-                        pdf.save(fileName);
-                    });
-                }
-
-                document.body.removeChild(tempDiv);
-                return Promise.reject('html2canvas no disponible');
-            }
-
-            // Alias para compatibilidad
-            const prepareTextForPDF = processTextForPDF;
 
             doc.setFontSize(18);
             doc.setTextColor(44, 62, 80);
-            doc.text(prepareTextForPDF("University of Dayton Publishing"), doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+            doc.text("University of Dayton Publishing", doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
             doc.setFontSize(12);
             doc.setTextColor(127, 140, 141);
-            doc.text(prepareTextForPDF("Sistema de Seguimiento de Clientes"), doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
+            doc.text("Sistema de Seguimiento de Clientes", doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
             doc.line(10, 35, doc.internal.pageSize.getWidth() - 10, 35);
 
             let yOffset = 45;
@@ -3384,7 +3294,7 @@
 
                 doc.setFontSize(16);
                 doc.setTextColor(44, 62, 80);
-                doc.text(prepareTextForPDF("Estadísticas Generales"), 14, yOffset);
+                doc.text("Estadísticas Generales", 14, yOffset);
                 yOffset += 10;
 
                 const statsTableData = [
@@ -3394,10 +3304,10 @@
                     ["Consultores Activos", stats.consultoresActivos],
                     ["Tipos de Interacción Únicos", stats.tiposInteraccion],
                     ["Registros en Papelera", stats.registrosPapelera]
-                ].map(row => [prepareTextForPDF(row[0]), row[1]]);
+                ].map(row => [row[0], row[1]]);
                 doc.autoTable({
                     startY: yOffset,
-                    head: [[prepareTextForPDF('Estadística'), prepareTextForPDF('Valor')]],
+                    head: [['Estadística', 'Valor']],
                     body: statsTableData,
                     theme: 'striped',
                     styles: { fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
@@ -3428,12 +3338,12 @@
                 Object.entries(zonasPorGerencia).forEach(([gerencia, zonas]) => {
                     const actividad = actividadPorGerencia[gerencia] || 0;
                     const porcentaje = ((actividad / totalRegistrosFiltrados) * 100).toFixed(1) + '%';
-                    resumenGerenciasTableData.push([prepareTextForPDF(gerencia), actividad, porcentaje]);
+                    resumenGerenciasTableData.push([gerencia, actividad, porcentaje]);
                 });
 
                 doc.autoTable({
                     startY: yOffset,
-                    head: [[prepareTextForPDF('Gerencia'), prepareTextForPDF('Total Interacciones'), prepareTextForPDF('% del Total')]],
+                    head: [['Gerencia', 'Total Interacciones', '% del Total']],
                     body: resumenGerenciasTableData,
                     theme: 'striped',
                     styles: { fontSize: 10, cellPadding: 2, overflow: 'linebreak' },
@@ -3466,13 +3376,13 @@
                     "Fecha", "Tipo", "Cliente", "Gerencia", "Zona", "Consultor", "Descripción"
                 ];
                 const detailedData = dataToExport.map(r => [
-                    prepareTextForPDF(safeGet(r, 'fecha')),
-                    prepareTextForPDF(safeGet(r, 'tipoInteraccion')),
-                    prepareTextForPDF(safeGet(r, 'cliente')),
-                    prepareTextForPDF(safeGet(r, 'gerencia')),
-                    prepareTextForPDF(safeGet(r, 'zona')),
-                    prepareTextForPDF(safeGet(r, 'consultor')),
-                    prepareTextForPDF(safeGet(r, 'descripcion'))
+                    safeGet(r, 'fecha')),
+                    safeGet(r, 'tipoInteraccion')),
+                    safeGet(r, 'cliente')),
+                    safeGet(r, 'gerencia')),
+                    safeGet(r, 'zona')),
+                    safeGet(r, 'consultor')),
+                    safeGet(r, 'descripcion')
                 ]);
 
                 doc.autoTable({
@@ -3516,13 +3426,13 @@
                     "Fecha", "Tipo", "Cliente", "Gerencia", "Zona", "Consultor", "Descripción"
                 ];
                 const rows = dataToExport.map(r => [
-                    prepareTextForPDF(safeGet(r, 'fecha')),
-                    prepareTextForPDF(safeGet(r, 'tipoInteraccion')),
-                    prepareTextForPDF(safeGet(r, 'cliente')),
-                    prepareTextForPDF(safeGet(r, 'gerencia')),
-                    prepareTextForPDF(safeGet(r, 'zona')),
-                    prepareTextForPDF(safeGet(r, 'consultor')),
-                    prepareTextForPDF(safeGet(r, 'descripcion'))
+                    safeGet(r, 'fecha')),
+                    safeGet(r, 'tipoInteraccion')),
+                    safeGet(r, 'cliente')),
+                    safeGet(r, 'gerencia')),
+                    safeGet(r, 'zona')),
+                    safeGet(r, 'consultor')),
+                    safeGet(r, 'descripcion')
                 ]);
 
                 doc.autoTable({
