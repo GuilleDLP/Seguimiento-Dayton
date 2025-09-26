@@ -1239,84 +1239,35 @@ window.exportarReportePDF = async function() {
     try {
         const { jsPDF } = window.jspdf;
 
-        // Configurar jsPDF con soporte mejorado para UTF-8
-        const doc = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4',
-            putOnlyUsedFonts: true,
-            floatPrecision: 16
-        });
-
-        // Configurar jsPDF para UTF-8
-        try {
-            doc.setFont("helvetica");
-            doc.setCharSpace(0);
-        } catch (error) {
-            console.warn('No se pudo configurar fuente UTF-8');
-        }
-
-        // Función mejorada para caracteres especiales en PDF
-        function processTextForPDF(text) {
-            if (!text) return '';
-
-            let processedText = String(text);
-
-            // Mapeo de caracteres especiales para jsPDF
-            const charMap = {
-                'á': '\u00E1', 'é': '\u00E9', 'í': '\u00ED', 'ó': '\u00F3', 'ú': '\u00FA',
-                'Á': '\u00C1', 'É': '\u00C9', 'Í': '\u00CD', 'Ó': '\u00D3', 'Ú': '\u00DA',
-                'ñ': '\u00F1', 'Ñ': '\u00D1', 'ü': '\u00FC', 'Ü': '\u00DC',
-                '¿': '\u00BF', '¡': '\u00A1'
-            };
-
-            // Usar códigos Unicode explícitos
-            for (const [char, code] of Object.entries(charMap)) {
-                processedText = processedText.replace(new RegExp(char, 'g'), code);
-            }
-
-            // Limpiar caracteres problemáticos
-            processedText = processedText
-                .replace(/[""]/g, '"')
-                .replace(/['']/g, "'")
-                .replace(/–/g, '-')
-                .replace(/—/g, '-')
-                .replace(/…/g, '...')
-                .replace(/\u00A0/g, ' ');
-
-            return processedText;
-        }
-
-        // Alias para compatibilidad
-        const prepareTextForPDF = processTextForPDF;
+        const doc = new jsPDF();
 
         // Encabezado
         doc.setFontSize(18);
-        doc.text(prepareTextForPDF('REPORTE EJECUTIVO - UNIVERSITY OF DAYTON PUBLISHING'), 14, 20);
+        doc.text('REPORTE EJECUTIVO - UNIVERSITY OF DAYTON PUBLISHING', 14, 20);
         doc.setFontSize(12);
-        doc.text(prepareTextForPDF(`Período: ${document.getElementById('reportFechaInicio').value} - ${document.getElementById('reportFechaFin').value}`), 14, 30);
-        doc.text(prepareTextForPDF(`Generado: ${new Date().toLocaleDateString('es-MX')}`), 14, 38);
+        doc.text(`Período: ${document.getElementById('reportFechaInicio').value} - ${document.getElementById('reportFechaFin').value}`, 14, 30);
+        doc.text(`Generado: ${new Date().toLocaleDateString('es-MX')}`, 14, 38);
 
         let yPos = 50;
 
         // Resumen ejecutivo
         doc.setFontSize(14);
-        doc.text(prepareTextForPDF('RESUMEN EJECUTIVO'), 14, yPos);
+        doc.text('RESUMEN EJECUTIVO', 14, yPos);
         yPos += 10;
 
         doc.setFontSize(10);
-        doc.text(prepareTextForPDF(`Total de Interacciones: ${stats.totalRegistros}`), 14, yPos);
+        doc.text(`Total de Interacciones: ${stats.totalRegistros}`, 14, yPos);
         yPos += 6;
-        doc.text(prepareTextForPDF(`Clientes Únicos: ${stats.clientesUnicos}`), 14, yPos);
+        doc.text(`Clientes Únicos: ${stats.clientesUnicos}`, 14, yPos);
         yPos += 6;
-        doc.text(prepareTextForPDF(`Consultores Activos: ${stats.consultoresActivos}`), 14, yPos);
+        doc.text(`Consultores Activos: ${stats.consultoresActivos}`, 14, yPos);
         yPos += 6;
-        doc.text(prepareTextForPDF(`Gerencias Cubiertas: ${stats.gerenciasActivas}`), 14, yPos);
+        doc.text(`Gerencias Cubiertas: ${stats.gerenciasActivas}`, 14, yPos);
         yPos += 15;
 
         // Actividad por consultor
         doc.setFontSize(12);
-        doc.text(prepareTextForPDF('ACTIVIDAD POR CONSULTOR'), 14, yPos);
+        doc.text('ACTIVIDAD POR CONSULTOR', 14, yPos);
         yPos += 8;
 
         doc.setFontSize(10);
@@ -1326,7 +1277,7 @@ window.exportarReportePDF = async function() {
                 const usuario = reporteData.usuarios[consultor];
                 const nombre = usuario ? usuario.nombre : consultor;
                 const porcentaje = ((count / stats.totalRegistros) * 100).toFixed(1);
-                doc.text(prepareTextForPDF(`${nombre}: ${count} registros (${porcentaje}%)`), 14, yPos);
+                doc.text(`${nombre}: ${count} registros (${porcentaje}%)`, 14, yPos);
                 yPos += 6;
             });
 
@@ -1407,36 +1358,7 @@ window.exportarReporteExcel = async function() {
 
         const fileName = `reporte_detallado_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-        // Método alternativo: generar como buffer con BOM UTF-8
-        try {
-            // Intentar usar el método con BOM UTF-8
-            const wbout = XLSX.write(wb, {
-                bookType: 'xlsx',
-                type: 'array',
-                compression: true
-            });
-
-            // Crear blob con BOM UTF-8
-            const blob = new Blob([wbout], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8'
-            });
-
-            // Descargar usando blob
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-
-        } catch (error) {
-            console.warn('Método con BOM falló, usando método tradicional:', error);
-            // Fallback al método original
-            XLSX.writeFile(wb, fileName);
-        }
+        XLSX.writeFile(wb, fileName);
 
         alert(`✅ Reporte Excel exportado: ${fileName}`);
 
