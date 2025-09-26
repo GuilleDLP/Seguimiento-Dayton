@@ -1553,7 +1553,7 @@
         }
 
         async function eliminarRegistrosFiltrados() {
-            const registrosFiltrados = getFilteredDataForExport('timeline');
+            const registrosFiltrados = await getFilteredDataForExport('timeline');
             
             if (registrosFiltrados.length === 0) {
                 mostrarMensaje('⚠️ No hay registros para eliminar con los filtros actuales', 'warning');
@@ -1583,8 +1583,8 @@
             }
         }
 
-        function confirmarEliminacionMasiva() {
-            const registrosFiltrados = getFilteredDataForExport('timeline');
+        async function confirmarEliminacionMasiva() {
+            const registrosFiltrados = await getFilteredDataForExport('timeline');
             mostrarModal(
                 '🗑️ Confirmar Eliminación Masiva',
                 `¿Estás seguro de que deseas eliminar ${registrosFiltrados.length} registros que coinciden con los filtros actuales? Se moverán a la papelera.`,
@@ -3037,9 +3037,25 @@
             }
         }
 
-        function getFilteredDataForExport(tabName) {
+        async function getFilteredDataForExport(tabName) {
+            // Intentar cargar datos desde GitHub para mejor codificación UTF-8
+            let dataSource = registrosOriginales;
+
+            try {
+                const sync = new GitHubSync();
+                if (sync.inicializar()) {
+                    const seguimientoData = await sync.leerArchivo('seguimiento.json');
+                    if (seguimientoData && seguimientoData.contenido && seguimientoData.contenido.registros) {
+                        console.log('📊 Usando datos de GitHub para exportación');
+                        dataSource = seguimientoData.contenido.registros;
+                    }
+                }
+            } catch (error) {
+                console.log('⚠️ No se pudo cargar desde GitHub, usando datos locales:', error);
+            }
+
             // Aplicar filtros de permisos primero
-            let filteredData = filtrarRegistrosPorPermisos(registrosOriginales);
+            let filteredData = filtrarRegistrosPorPermisos(dataSource);
 
             if (tabName === 'timeline') {
                 const filtroGerencia = sanitizeString(document.getElementById('filtroGerencia')?.value || '');
@@ -3108,9 +3124,9 @@
             return filteredData.filter(r => r && typeof r === 'object' && sanitizeString(safeGet(r, 'cliente')));
         }
 
-        function exportToXLSX(tabName) {
+        async function exportToXLSX(tabName) {
             console.log(`📤 Iniciando exportación XLSX para: ${tabName}`);
-            const dataToExport = getFilteredDataForExport(tabName);
+            const dataToExport = await getFilteredDataForExport(tabName);
 
             if (dataToExport.length === 0) {
                 mostrarMensaje('⚠️ No hay datos para exportar con los filtros actuales.', 'warning');
@@ -3164,12 +3180,12 @@
                     "Fecha", "Tipo de Interacción", "Cliente", "Gerencia", "Zona Comercial", "Consultor/a", "Descripción"
                 ];
                 const detailedData = dataToExport.map(r => [
-                    safeGet(r, 'fecha')),
-                    safeGet(r, 'tipoInteraccion')),
-                    safeGet(r, 'cliente')),
-                    safeGet(r, 'gerencia')),
-                    safeGet(r, 'zona')),
-                    safeGet(r, 'consultor')),
+                    safeGet(r, 'fecha'),
+                    safeGet(r, 'tipoInteraccion'),
+                    safeGet(r, 'cliente'),
+                    safeGet(r, 'gerencia'),
+                    safeGet(r, 'zona'),
+                    safeGet(r, 'consultor'),
                     safeGet(r, 'descripcion')
                 ]);
                 const ws3 = XLSX.utils.aoa_to_sheet([detailedHeaders, ...detailedData]);
@@ -3197,9 +3213,9 @@
             console.log('✅ XLSX exportado');
         }
 
-        function exportToCSV(tabName) {
+        async function exportToCSV(tabName) {
             console.log(`📤 Iniciando exportación CSV para: ${tabName}`);
-            const dataToExport = getFilteredDataForExport(tabName);
+            const dataToExport = await getFilteredDataForExport(tabName);
 
             if (dataToExport.length === 0) {
                 mostrarMensaje('⚠️ No hay datos para exportar con los filtros actuales.', 'warning');
@@ -3263,7 +3279,7 @@
             }
         }
 
-        function exportToPDF(tabName) {
+        async function exportToPDF(tabName) {
             console.log(`📤 Iniciando exportación PDF para: ${tabName}`);
             const { jsPDF } = window.jspdf;
 
@@ -3285,7 +3301,7 @@
 
             if (tabName === 'dashboard') {
                 const stats = getEstadisticasBasicas();
-                const dataToExport = getFilteredDataForExport(tabName);
+                const dataToExport = await getFilteredDataForExport(tabName);
 
                 if (dataToExport.length === 0) {
                     mostrarMensaje('⚠️ No hay datos para exportar con los filtros actuales.', 'warning');
@@ -3376,12 +3392,12 @@
                     "Fecha", "Tipo", "Cliente", "Gerencia", "Zona", "Consultor", "Descripción"
                 ];
                 const detailedData = dataToExport.map(r => [
-                    safeGet(r, 'fecha')),
-                    safeGet(r, 'tipoInteraccion')),
-                    safeGet(r, 'cliente')),
-                    safeGet(r, 'gerencia')),
-                    safeGet(r, 'zona')),
-                    safeGet(r, 'consultor')),
+                    safeGet(r, 'fecha'),
+                    safeGet(r, 'tipoInteraccion'),
+                    safeGet(r, 'cliente'),
+                    safeGet(r, 'gerencia'),
+                    safeGet(r, 'zona'),
+                    safeGet(r, 'consultor'),
                     safeGet(r, 'descripcion')
                 ]);
 
@@ -3410,7 +3426,7 @@
                 });
 
             } else if (tabName === 'timeline') {
-                const dataToExport = getFilteredDataForExport(tabName);
+                const dataToExport = await getFilteredDataForExport(tabName);
 
                 if (dataToExport.length === 0) {
                     mostrarMensaje('⚠️ No hay datos para exportar con los filtros actuales.', 'warning');
