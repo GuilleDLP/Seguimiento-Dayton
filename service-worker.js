@@ -1,4 +1,4 @@
-const CACHE_NAME = 'seguimiento-dayton-v2';
+const CACHE_NAME = 'seguimiento-dayton-v3';
 const urlsToCache = [
   './',
   './index.html',
