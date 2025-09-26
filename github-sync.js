@@ -1,6 +1,9 @@
 // Sistema de Sincronización con GitHub para Seguimiento de Clientes
 // Compatible con el backend compartido con Reporte de Visitas
 
+// NOTA: Las constantes de IndexedDB vienen de db-config.js
+// Esto garantiza consistencia de versiones entre todos los archivos
+
 class GitHubSync {
     constructor() {
         this.config = null;
@@ -287,12 +290,12 @@ class GitHubSync {
     // Obtener registros de IndexedDB
     async obtenerRegistrosLocales() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open('SeguimientoDaytonDB', 1);
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
 
             request.onsuccess = (event) => {
                 const db = event.target.result;
-                const transaction = db.transaction(['registros'], 'readonly');
-                const store = transaction.objectStore('registros');
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
                 const getAllRequest = store.getAll();
 
                 getAllRequest.onsuccess = () => {
@@ -304,8 +307,13 @@ class GitHubSync {
                 };
             };
 
-            request.onerror = () => {
-                reject(request.error);
+            request.onerror = (event) => {
+                console.error('❌ Error abriendo IndexedDB:', event.target.error);
+                reject(event.target.error);
+            };
+
+            request.onblocked = () => {
+                console.warn('⚠️ IndexedDB bloqueado por otra pestaña. Cerrando conexiones...');
             };
         });
     }
@@ -313,12 +321,12 @@ class GitHubSync {
     // Actualizar registros en IndexedDB
     async actualizarRegistrosLocales(registros) {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open('SeguimientoDaytonDB', 1);
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
 
             request.onsuccess = (event) => {
                 const db = event.target.result;
-                const transaction = db.transaction(['registros'], 'readwrite');
-                const store = transaction.objectStore('registros');
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
 
                 // Limpiar store actual
                 const clearRequest = store.clear();
@@ -343,8 +351,13 @@ class GitHubSync {
                 };
             };
 
-            request.onerror = () => {
-                reject(request.error);
+            request.onerror = (event) => {
+                console.error('❌ Error abriendo IndexedDB:', event.target.error);
+                reject(event.target.error);
+            };
+
+            request.onblocked = () => {
+                console.warn('⚠️ IndexedDB bloqueado por otra pestaña. Cerrando conexiones...');
             };
         });
     }
@@ -460,19 +473,19 @@ class GitHubSync {
     // Obtener papelera local
     async obtenerPapeleraLocal() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open('SeguimientoDaytonDB', 1);
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
 
             request.onsuccess = (event) => {
                 const db = event.target.result;
 
                 // Verificar si el objectStore existe
-                if (!db.objectStoreNames.contains('papelera')) {
+                if (!db.objectStoreNames.contains(TRASH_STORE_NAME)) {
                     resolve([]);
                     return;
                 }
 
-                const transaction = db.transaction(['papelera'], 'readonly');
-                const store = transaction.objectStore('papelera');
+                const transaction = db.transaction([TRASH_STORE_NAME], 'readonly');
+                const store = transaction.objectStore(TRASH_STORE_NAME);
                 const getAllRequest = store.getAll();
 
                 getAllRequest.onsuccess = () => {
@@ -484,8 +497,13 @@ class GitHubSync {
                 };
             };
 
-            request.onerror = () => {
-                reject(request.error);
+            request.onerror = (event) => {
+                console.error('❌ Error abriendo IndexedDB:', event.target.error);
+                reject(event.target.error);
+            };
+
+            request.onblocked = () => {
+                console.warn('⚠️ IndexedDB bloqueado por otra pestaña. Cerrando conexiones...');
             };
         });
     }
@@ -493,19 +511,19 @@ class GitHubSync {
     // Actualizar papelera local
     async actualizarPapeleraLocal(registros) {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open('SeguimientoDaytonDB', 1);
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
 
             request.onsuccess = (event) => {
                 const db = event.target.result;
 
                 // Verificar si el objectStore existe
-                if (!db.objectStoreNames.contains('papelera')) {
+                if (!db.objectStoreNames.contains(TRASH_STORE_NAME)) {
                     resolve(true);
                     return;
                 }
 
-                const transaction = db.transaction(['papelera'], 'readwrite');
-                const store = transaction.objectStore('papelera');
+                const transaction = db.transaction([TRASH_STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(TRASH_STORE_NAME);
 
                 // Limpiar store actual
                 const clearRequest = store.clear();
@@ -530,8 +548,13 @@ class GitHubSync {
                 };
             };
 
-            request.onerror = () => {
-                reject(request.error);
+            request.onerror = (event) => {
+                console.error('❌ Error abriendo IndexedDB:', event.target.error);
+                reject(event.target.error);
+            };
+
+            request.onblocked = () => {
+                console.warn('⚠️ IndexedDB bloqueado por otra pestaña. Cerrando conexiones...');
             };
         });
     }
