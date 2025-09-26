@@ -6,6 +6,8 @@
     <title>Seguimiento de Clientes - University of Dayton Publishing</title>
     <!-- PWA Manifest -->
     <link rel="manifest" href="./manifest.json">
+    <!-- Configuración centralizada de base de datos -->
+    <script src="./db-config.js" defer></script>
     <!-- Sistema de autenticación -->
     <script src="./auth.js" defer></script>
     <!-- Configuración de GitHub -->
@@ -1011,10 +1013,8 @@
         // =================================================================
         // CONFIGURACIÓN DE INDEXEDDB CON MANEJO ROBUSTO DE ERRORES
         // =================================================================
-        const DB_NAME = 'SeguimientoDaytonDB';
-        const DB_VERSION = 2; // Incrementamos versión para nueva estructura
-        const STORE_NAME = 'registros';
-        const TRASH_STORE_NAME = 'papelera';
+        // NOTA: Las constantes DB_NAME, DB_VERSION, etc. ahora vienen de db-config.js
+        // Esto garantiza consistencia entre todos los archivos
         let db;
         let dbStatus = 'offline';
         let memoryFallback = []; // Fallback para cuando IndexedDB falle
