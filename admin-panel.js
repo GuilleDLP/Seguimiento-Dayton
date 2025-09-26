@@ -28,6 +28,9 @@ class PanelAdministrador {
             await this.sync.sincronizarUsuarios();
             this.usuariosCache = this.auth.obtenerUsuarios() || {};
         }
+
+        // Cargar datos de seguimiento para estadísticas
+        await cargarDatosReporte();
     }
 
     renderizarPanel() {
@@ -505,8 +508,8 @@ class PanelAdministrador {
         const administradores = Object.values(this.usuariosCache).filter(u => u.rol === 'admin').length;
 
         // Calcular estadísticas de seguimiento
-        const totalRegistros = registrosOriginales ? registrosOriginales.length : 0;
-        const registrosHoy = registrosOriginales ? registrosOriginales.filter(r => {
+        const totalRegistros = reporteData.registros ? reporteData.registros.length : 0;
+        const registrosHoy = reporteData.registros ? reporteData.registros.filter(r => {
             const fecha = new Date(r.fecha);
             const hoy = new Date();
             return fecha.toDateString() === hoy.toDateString();
