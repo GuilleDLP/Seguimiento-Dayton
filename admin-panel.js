@@ -989,42 +989,51 @@ window.cargarDatosReporte = async function() {
             const seguimientoData = await sync.leerArchivo('seguimiento.json');
             const papeleraData = await sync.leerArchivo('papelera_seguimiento.json');
 
-            if (seguimientoData || papeleraData) {
-                // Si al menos uno existe, usar datos de GitHub
-                reporteData.registros = seguimientoData?.contenido?.registros || [];
-                reporteData.papelera = papeleraData?.contenido?.registros || [];
-                console.log('Datos de GitHub cargados:', reporteData.registros.length, 'registros');
+            // Cargar datos locales primero
+            console.log('📦 Cargando datos locales...');
+            reporteData.registros = await sync.obtenerRegistrosLocales() || [];
+            reporteData.papelera = await sync.obtenerPapeleraLocal() || [];
+            console.log(`📊 Datos locales: ${reporteData.registros.length} registros, ${reporteData.papelera.length} en papelera`);
+
+            if (seguimientoData && seguimientoData.contenido) {
+                // Si existe en GitHub, mezclar datos
+                console.log('✅ Encontrado seguimiento en GitHub, mezclando datos...');
+                const registrosGitHub = seguimientoData.contenido.registros || [];
+                // Aquí podrías implementar lógica de merge si necesitas
+                reporteData.registros = registrosGitHub;
             } else {
-                // Si no existen archivos en GitHub, cargar locales y crear archivos en GitHub
-                console.log('⚠️ Archivos no encontrados en GitHub, usando datos locales...');
-                reporteData.registros = await sync.obtenerRegistrosLocales() || [];
-                reporteData.papelera = await sync.obtenerPapeleraLocal() || [];
-
-                // Crear archivos iniciales en GitHub si no existen
-                if (reporteData.registros.length > 0 || !seguimientoData) {
-                    const datosGuardar = {
-                        registros: reporteData.registros,
-                        ultimaActualizacion: new Date().toISOString(),
-                        totalRegistros: reporteData.registros.length,
-                        metadata: {
-                            aplicacion: 'Seguimiento de Clientes',
-                            version: '2.0'
-                        }
-                    };
-                    await sync.escribirArchivo('seguimiento.json', datosGuardar, 'Creación inicial de seguimiento');
-                }
-
-                if (reporteData.papelera.length > 0 || !papeleraData) {
-                    const papeleraGuardar = {
-                        registros: reporteData.papelera,
-                        ultimaActualizacion: new Date().toISOString(),
-                        totalRegistros: reporteData.papelera.length
-                    };
-                    await sync.escribirArchivo('papelera_seguimiento.json', papeleraGuardar, 'Creación inicial de papelera');
-                }
-
-                console.log('Datos locales cargados y sincronizados:', reporteData.registros.length, 'registros');
+                // Crear archivo en GitHub
+                console.log('📝 Creando archivo seguimiento.json en GitHub...');
+                const datosGuardar = {
+                    registros: reporteData.registros,
+                    ultimaActualizacion: new Date().toISOString(),
+                    totalRegistros: reporteData.registros.length,
+                    metadata: {
+                        aplicacion: 'Seguimiento de Clientes',
+                        version: '2.0'
+                    }
+                };
+                const exitoSeguimiento = await sync.escribirArchivo('seguimiento.json', datosGuardar, 'Creación inicial de seguimiento');
+                console.log(`📄 Resultado seguimiento.json: ${exitoSeguimiento ? 'Éxito' : 'Error'}`);
             }
+
+            if (papeleraData && papeleraData.contenido) {
+                // Si existe en GitHub, usar esos datos
+                console.log('✅ Encontrada papelera en GitHub...');
+                reporteData.papelera = papeleraData.contenido.registros || [];
+            } else {
+                // Crear archivo en GitHub
+                console.log('📝 Creando archivo papelera_seguimiento.json en GitHub...');
+                const papeleraGuardar = {
+                    registros: reporteData.papelera,
+                    ultimaActualizacion: new Date().toISOString(),
+                    totalRegistros: reporteData.papelera.length
+                };
+                const exitoPapelera = await sync.escribirArchivo('papelera_seguimiento.json', papeleraGuardar, 'Creación inicial de papelera');
+                console.log(`📄 Resultado papelera_seguimiento.json: ${exitoPapelera ? 'Éxito' : 'Error'}`);
+            }
+
+            console.log(`✅ Proceso completado: ${reporteData.registros.length} registros, ${reporteData.papelera.length} en papelera`);
         } else {
             console.log('⚠️ GitHub no configurado, cargando desde IndexedDB local...');
             // Cargar desde IndexedDB local
